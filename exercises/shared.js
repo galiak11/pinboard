@@ -134,6 +134,29 @@ function updateCheckboxes() {
   });
 }
 
+/* --- Copy Buttons --- */
+
+function addCopyButtons() {
+  document.querySelectorAll('pre > code').forEach(codeEl => {
+    const pre = codeEl.parentElement;
+    if (pre.querySelector('.copy-btn')) return; // already added
+    const btn = document.createElement('button');
+    btn.className = 'copy-btn';
+    btn.textContent = 'Copy';
+    btn.addEventListener('click', () => {
+      navigator.clipboard.writeText(codeEl.textContent).then(() => {
+        btn.textContent = 'Copied';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'Copy';
+          btn.classList.remove('copied');
+        }, 1500);
+      });
+    });
+    pre.appendChild(btn);
+  });
+}
+
 /* --- Init --- */
 
 function initSettings() {
@@ -145,6 +168,7 @@ function initSettings() {
   updateStatus();
   updateAllLinks();
   updateCheckboxes();
+  addCopyButtons();
 
   document.querySelectorAll('.check[data-exercise]').forEach(el => {
     el.addEventListener('click', () => {

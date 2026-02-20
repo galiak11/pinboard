@@ -249,6 +249,37 @@ pre {
   margin: 12px 0;
   font-size: 13px;
   line-height: 1.5;
+  position: relative;
+}
+
+/* Copy Button */
+.copy-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  padding: 2px 8px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s, color 0.15s, border-color 0.15s;
+}
+
+pre:hover .copy-btn { opacity: 1; }
+
+.copy-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent-dim);
+}
+
+.copy-btn.copied {
+  color: var(--green);
+  border-color: var(--green-dim);
+  opacity: 1;
 }
 
 code {
