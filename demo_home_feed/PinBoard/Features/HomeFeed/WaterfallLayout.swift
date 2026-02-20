@@ -1,76 +1,137 @@
 import UIKit
 
-enum WaterfallLayout {
+/// Custom waterfall layout for UICollectionView
+final class WaterfallLayout: UICollectionViewLayout {
+
+    // MARK: - Configuration
+
     static let columnCount = 2
     static let interItemSpacing: CGFloat = 8
     static let sectionInset: CGFloat = 8
     static let textAreaHeight: CGFloat = 70
 
-    /// Creates a waterfall-style compositional layout.
-    /// The `heightProvider` closure returns the aspect ratio (height/width) for a given index.
-    static func makeLayout(
-        heightProvider: @escaping (Int) -> CGFloat
-    ) -> UICollectionViewCompositionalLayout {
-        UICollectionViewCompositionalLayout { sectionIndex, environment in
-            let containerWidth = environment.container.effectiveContentSize.width
-            let itemWidth = (containerWidth - sectionInset * 2 - interItemSpacing) / CGFloat(columnCount)
+    weak var delegate: WaterfallLayoutDelegate?
 
-            let group = NSCollectionLayoutGroup.custom(
-                layoutSize: NSCollectionLayoutSize(
-                    widthDimension: .fractionalWidth(1.0),
-                    heightDimension: .estimated(300)
-                )
-            ) { environment in
-                var items: [NSCollectionLayoutGroupCustomItem] = []
-                let totalWidth = environment.container.effectiveContentSize.width
-                let columnWidth = (totalWidth - sectionInset * 2 - interItemSpacing) / CGFloat(columnCount)
+    private var cache: [UICollectionViewLayoutAttributes] = []
+    private var footerAttributes: UICollectionViewLayoutAttributes?
+    private var contentHeight: CGFloat = 0
 
-                // Track the bottom Y position of each column
-                var columnHeights = [CGFloat](repeating: 0, count: columnCount)
+    private var contentWidth: CGFloat {
+        guard let collectionView = collectionView else { return 0 }
+        let insets = collectionView.contentInset
+        return collectionView.bounds.width - (insets.left + insets.right)
+    }
 
-                let itemCount = environment.container.effectiveContentSize.height > 0
-                    ? Int(environment.container.effectiveContentSize.height / 100)
-                    : 20
+    override var collectionViewContentSize: CGSize {
+        CGSize(width: contentWidth, height: contentHeight)
+    }
 
-                for index in 0..<itemCount {
-                    // Place in shortest column
-                    let shortestColumn = columnHeights.enumerated()
-                        .min(by: { $0.element < $1.element })?.offset ?? 0
+    // MARK: - Layout
 
-                    let x = sectionInset + CGFloat(shortestColumn) * (columnWidth + interItemSpacing)
-                    let y = columnHeights[shortestColumn]
+    override func prepare() {
+        guard let collectionView = collectionView,
+              cache.isEmpty else { return }
 
-                    let aspectRatio = heightProvider(index)
-                    let imageHeight = columnWidth * aspectRatio
-                    let totalHeight = imageHeight + textAreaHeight
+        // Guard against no sections (data source not set up yet)
+        guard collectionView.numberOfSections > 0 else { return }
 
-                    let frame = CGRect(x: x, y: y, width: columnWidth, height: totalHeight)
-                    items.append(NSCollectionLayoutGroupCustomItem(frame: frame))
-
-                    columnHeights[shortestColumn] = y + totalHeight + interItemSpacing
-                }
-
-                return items
-            }
-
-            let section = NSCollectionLayoutSection(group: group)
-            section.contentInsets = NSDirectionalEdgeInsets(
-                top: sectionInset, leading: 0, bottom: sectionInset, trailing: 0
-            )
-
-            // Footer for loading spinner
-            let footerSize = NSCollectionLayoutSize(
-                widthDimension: .fractionalWidth(1.0),
-                heightDimension: .absolute(50)
-            )
-            let footer = NSCollectionLayoutBoundarySupplementaryItem(
-                layoutSize: footerSize,
-                elementKind: UICollectionView.elementKindSectionFooter,
-                alignment: .bottom
-            )
-            section.boundarySupplementaryItems = [footer]
-
-            return section
+        let columnWidth = (contentWidth - Self.sectionInset * 2 - Self.interItemSpacing) / CGFloat(Self.columnCount)
+        var xOffset: [CGFloat] = []
+        for column in 0..<Self.columnCount {
+            xOffset.append(Self.sectionInset + CGFloat(column) * (columnWidth + Self.interItemSpacing))
         }
+
+        var column = 0
+        var yOffset: [CGFloat] = Array(repeating: Self.sectionInset, count: Self.columnCount)
+
+        // Layout items
+        for item in 0..<collectionView.numberOfItems(inSection: 0) {
+            let indexPath = IndexPath(item: item, section: 0)
+
+            let aspectRatio = delegate?.collectionView(collectionView, aspectRatioForItemAt: indexPath) ?? 1.0
+            let imageHeight = columnWidth * aspectRatio
+            let cellHeight = imageHeight + Self.textAreaHeight
+
+            let frame = CGRect(
+                x: xOffset[column],
+                y: yOffset[column],
+                width: columnWidth,
+                height: cellHeight
+            )
+
+            let attributes = UICollectionViewLayoutAttributes(forCellWith: indexPath)
+            attributes.frame = frame
+            cache.append(attributes)
+
+            contentHeight = max(contentHeight, frame.maxY)
+            yOffset[column] = yOffset[column] + cellHeight + Self.interItemSpacing
+
+            column = column < (Self.columnCount - 1) ? (column + 1) : 0
+        }
+
+        // Layout footer
+        contentHeight += Self.sectionInset
+        let footerIndexPath = IndexPath(item: 0, section: 0)
+        let footerFrame = CGRect(
+            x: 0,
+            y: contentHeight,
+            width: contentWidth,
+            height: 50
+        )
+        let footerAttrs = UICollectionViewLayoutAttributes(
+            forSupplementaryViewOfKind: UICollectionView.elementKindSectionFooter,
+            with: footerIndexPath
+        )
+        footerAttrs.frame = footerFrame
+        footerAttributes = footerAttrs
+        contentHeight = footerFrame.maxY
+    }
+
+    override func layoutAttributesForElements(in rect: CGRect) -> [UICollectionViewLayoutAttributes]? {
+        var visibleLayoutAttributes: [UICollectionViewLayoutAttributes] = []
+
+        for attributes in cache {
+            if attributes.frame.intersects(rect) {
+                visibleLayoutAttributes.append(attributes)
+            }
+        }
+
+        if let footerAttributes = footerAttributes, footerAttributes.frame.intersects(rect) {
+            visibleLayoutAttributes.append(footerAttributes)
+        }
+
+        return visibleLayoutAttributes
+    }
+
+    override func layoutAttributesForItem(at indexPath: IndexPath) -> UICollectionViewLayoutAttributes? {
+        return cache[safe: indexPath.item]
+    }
+
+    override func layoutAttributesForSupplementaryView(
+        ofKind elementKind: String,
+        at indexPath: IndexPath
+    ) -> UICollectionViewLayoutAttributes? {
+        return elementKind == UICollectionView.elementKindSectionFooter ? footerAttributes : nil
+    }
+
+    override func invalidateLayout() {
+        super.invalidateLayout()
+        cache.removeAll()
+        footerAttributes = nil
+        contentHeight = 0
+    }
+}
+
+// MARK: - Delegate Protocol
+
+protocol WaterfallLayoutDelegate: AnyObject {
+    func collectionView(_ collectionView: UICollectionView, aspectRatioForItemAt indexPath: IndexPath) -> CGFloat
+}
+
+// MARK: - Array Extension
+
+private extension Array {
+    subscript(safe index: Int) -> Element? {
+        return indices.contains(index) ? self[index] : nil
     }
 }

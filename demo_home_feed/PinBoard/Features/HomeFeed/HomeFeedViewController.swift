@@ -50,10 +50,8 @@ final class HomeFeedViewController: UIViewController {
         title = "Home"
         view.backgroundColor = AppColors.background
 
-        let layout = WaterfallLayout.makeLayout { [weak self] index in
-            guard let self, index < self.viewModel.cellViewModels.count else { return 1.0 }
-            return self.viewModel.cellViewModels[index].aspectRatio
-        }
+        let layout = WaterfallLayout()
+        layout.delegate = self
 
         collectionView = UICollectionView(frame: view.bounds, collectionViewLayout: layout)
         collectionView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
@@ -241,3 +239,12 @@ extension HomeFeedViewController: UICollectionViewDataSourcePrefetching {
         prefetcher.stopPrefetching(with: urls)
     }
 }
+// MARK: - WaterfallLayoutDelegate
+
+extension HomeFeedViewController: WaterfallLayoutDelegate {
+    func collectionView(_ collectionView: UICollectionView, aspectRatioForItemAt indexPath: IndexPath) -> CGFloat {
+        guard indexPath.item < viewModel.cellViewModels.count else { return 1.0 }
+        return viewModel.cellViewModels[indexPath.item].aspectRatio
+    }
+}
+

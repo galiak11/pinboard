@@ -1,5 +1,5 @@
 import Foundation
 
-enum Secrets {
+enum SecretsExample {
     static let unsplashAccessKey = "YOUR_ACCESS_KEY_HERE"
 }
