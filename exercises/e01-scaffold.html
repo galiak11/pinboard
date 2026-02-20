@@ -35,11 +35,11 @@
   </p>
 
   <h2>Problem</h2>
-  <p>You're starting a new iOS app called <strong>PinBoard</strong>. Create the project in Xcode, set up a programmatic UIKit lifecycle with a <code>UINavigationController</code> as root, organize the source files into a clean folder structure, and establish a design system with semantic color tokens and typography that support light/dark mode and Dynamic Type.</p>
+  <p>You're starting a new iOS app called <strong>PinBoard</strong>. Create the project in Xcode, remove the default storyboard-based launch flow, set up a programmatic UIKit lifecycle with a <code>UINavigationController</code> as root, organize the source files into a clean folder structure, and establish a design system with semantic color tokens and typography that support light/dark mode and Dynamic Type.</p>
   <p>By the end of this exercise, the app should build, launch on a simulator, and display an empty screen with your themed background color.</p>
 
   <h2>What the Solution Looks Like</h2>
-  <p>An Xcode project created via File → New → Project, with a programmatic <code>SceneDelegate</code> that creates a UIWindow with a <code>UINavigationController</code>. Source files organized into feature-based groups. An asset catalog with color sets for light/dark mode. <code>AppColors</code> and <code>AppFonts</code> enums providing semantic design tokens throughout the app.</p>
+  <p>An Xcode project created via File → New → Project, stripped of storyboards, with a programmatic <code>SceneDelegate</code> that creates a UIWindow with a <code>UINavigationController</code>. Source files organized into feature-based groups. An asset catalog with color sets for light/dark mode. <code>AppColors</code> and <code>AppFonts</code> enums providing semantic design tokens throughout the app.</p>
 
   <h2>Steps</h2>
 
@@ -51,20 +51,28 @@
     <p>In Xcode: <strong>File → New → Project → App</strong>. Configure:</p>
     <ul>
       <li>Product Name: <code>PinBoard</code></li>
+      <li>Interface: <strong>Storyboard</strong></li>
       <li>Language: <strong>Swift</strong></li>
       <li>Check <strong>Include Tests</strong></li>
       <li><strong>Uncheck</strong> "Create Git repository on my Mac" — your cloned fork is already a git repo</li>
     </ul>
     <p>Save the project <strong>inside your cloned repo folder</strong> so it sits alongside the <code>exercises/</code> directory. Xcode will automatically detect the existing git repo and show file change indicators in the Project Navigator.</p>
-    <p>Xcode generates an <code>AppDelegate</code>, <code>SceneDelegate</code>, and a default <code>ViewController</code>. Delete the default <code>ViewController.swift</code> — we won't need it.</p>
+    <p>Verify it builds and runs on the simulator — you'll see a blank white screen from the default storyboard.</p>
   </div>
 
   <div class="step">
     <div class="step-header">
       <span class="step-num">Step 2</span>
-      <span class="step-title">Set up the programmatic window</span>
+      <span class="step-title">Remove storyboards and go programmatic</span>
     </div>
-    <p>Update <code>SceneDelegate</code> to create a <code>UIWindow</code> with a <code>UINavigationController</code> as root:</p>
+    <p>The default project uses <code>Main.storyboard</code> to instantiate the initial view controller. Switch to a fully programmatic setup:</p>
+    <ol>
+      <li>Delete <code>Main.storyboard</code> (move to trash)</li>
+      <li>Delete the default <code>ViewController.swift</code></li>
+      <li>In the target's <strong>Info</strong> tab (or Info.plist): remove the <code>Main storyboard file base name</code> entry</li>
+      <li>In <strong>Info → Application Scene Manifest → Scene Configuration → Default Configuration</strong>: remove the <code>Storyboard Name</code> entry</li>
+    </ol>
+    <p>Update <code>SceneDelegate</code> to create the window programmatically:</p>
 <pre><code>func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
     guard let windowScene = (scene as? UIWindowScene) else { return }
     let window = UIWindow(windowScene: windowScene)
@@ -73,12 +81,27 @@
     window.makeKeyAndVisible()
     self.window = window
 }</code></pre>
-    <p>Build and run — you should see an empty screen.</p>
+    <p>Build and run — you should see an empty screen (no crash, no storyboard errors).</p>
   </div>
+
+  <details>
+    <summary>Hint: Info.plist storyboard removal</summary>
+    <div class="hint-body">
+      <p>If editing Info.plist as source code, remove these keys:</p>
+<pre><code>&lt;!-- Remove this from the top level --&gt;
+&lt;key&gt;UIMainStoryboardFile&lt;/key&gt;
+&lt;string&gt;Main&lt;/string&gt;
+
+&lt;!-- Inside UIApplicationSceneManifest → UISceneConfigurations → UIWindowSceneSessionRoleApplication, remove: --&gt;
+&lt;key&gt;UISceneStoryboardFile&lt;/key&gt;
+&lt;string&gt;Main&lt;/string&gt;</code></pre>
+      <p>Alternatively, in the target's General tab, clear the "Main Interface" field.</p>
+    </div>
+  </details>
 
   <div class="step">
     <div class="step-header">
-      <span class="step-num">Step 3</span>
+      <span class="step-num">Step 4</span>
       <span class="step-title">Organize the folder structure</span>
     </div>
     <p>Create Xcode groups (backed by real folders) to organize the project for the features we'll build:</p>
@@ -116,7 +139,7 @@ PinBoardTests/
 
   <div class="step">
     <div class="step-header">
-      <span class="step-num">Step 4</span>
+      <span class="step-num">Step 5</span>
       <span class="step-title">Create the design system</span>
     </div>
     <p>Add color sets to <code>Assets.xcassets</code> (via Xcode's asset catalog editor) with light and dark variants for: <strong>Primary</strong>, <strong>Secondary</strong>, <strong>Background</strong>, <strong>Surface</strong>, <strong>OnSurface</strong>, <strong>OnSurfaceSecondary</strong>, <strong>Error</strong>, <strong>Divider</strong>.</p>
@@ -134,7 +157,7 @@ PinBoardTests/
   <table class="rubric">
     <thead><tr><th>Level</th><th>Criteria</th></tr></thead>
     <tbody>
-      <tr><td class="label-min">Minimal</td><td>App builds, launches on simulator, shows empty screen with themed background color</td></tr>
+      <tr><td class="label-min">Minimal</td><td>App builds, launches on simulator with no storyboard, shows empty screen with themed background color</td></tr>
       <tr><td class="label-ext">Extended</td><td>All 8 color tokens defined with light/dark variants. All 5 font tokens use Dynamic Type. Folder structure matches the target layout. Background color switches correctly in dark mode.</td></tr>
     </tbody>
   </table>
