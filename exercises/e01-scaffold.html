@@ -72,16 +72,7 @@
       <li>In the target's <strong>Info</strong> tab (or Info.plist): remove the <code>Main storyboard file base name</code> entry</li>
       <li>In <strong>Info → Application Scene Manifest → Scene Configuration → Default Configuration</strong>: remove the <code>Storyboard Name</code> entry</li>
     </ol>
-    <p>Update <code>SceneDelegate</code> to create the window programmatically:</p>
-<pre><code>func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
-    guard let windowScene = (scene as? UIWindowScene) else { return }
-    let window = UIWindow(windowScene: windowScene)
-    let nav = UINavigationController()
-    window.rootViewController = nav
-    window.makeKeyAndVisible()
-    self.window = window
-}</code></pre>
-    <p>Build and run — you should see an empty screen (no crash, no storyboard errors).</p>
+    <p>Update <code>AppDelegate.swift</code> and <code>SceneDelegate.swift</code> to create the window programmatically. Build and run — you should see an empty screen (no crash, no storyboard errors).</p>
   </div>
 
   <details>
@@ -99,9 +90,58 @@
     </div>
   </details>
 
+  <details>
+    <summary>Solution: AppDelegate.swift</summary>
+    <div class="hint-body">
+<pre><code>import UIKit
+
+@main
+class AppDelegate: UIResponder, UIApplicationDelegate {
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
+    ) -> Bool {
+        return true
+    }
+
+    func application(
+        _ application: UIApplication,
+        configurationForConnecting connectingSceneSession: UISceneSession,
+        options: UIScene.ConnectionOptions
+    ) -> UISceneConfiguration {
+        UISceneConfiguration(name: "Default Configuration", sessionRole: connectingSceneSession.role)
+    }
+}</code></pre>
+    </div>
+  </details>
+
+  <details>
+    <summary>Solution: SceneDelegate.swift</summary>
+    <div class="hint-body">
+<pre><code>import UIKit
+
+class SceneDelegate: UIResponder, UIWindowSceneDelegate {
+    var window: UIWindow?
+
+    func scene(
+        _ scene: UIScene,
+        willConnectTo session: UISceneSession,
+        options connectionOptions: UIScene.ConnectionOptions
+    ) {
+        guard let windowScene = scene as? UIWindowScene else { return }
+        let window = UIWindow(windowScene: windowScene)
+        let nav = UINavigationController()
+        window.rootViewController = nav
+        window.makeKeyAndVisible()
+        self.window = window
+    }
+}</code></pre>
+    </div>
+  </details>
+
   <div class="step">
     <div class="step-header">
-      <span class="step-num">Step 4</span>
+      <span class="step-num">Step 3</span>
       <span class="step-title">Organize the folder structure</span>
     </div>
     <p>Create Xcode groups (backed by real folders) to organize the project for the features we'll build:</p>
@@ -139,19 +179,72 @@ PinBoardTests/
 
   <div class="step">
     <div class="step-header">
-      <span class="step-num">Step 5</span>
+      <span class="step-num">Step 4</span>
       <span class="step-title">Create the design system</span>
     </div>
     <p>Add color sets to <code>Assets.xcassets</code> (via Xcode's asset catalog editor) with light and dark variants for: <strong>Primary</strong>, <strong>Secondary</strong>, <strong>Background</strong>, <strong>Surface</strong>, <strong>OnSurface</strong>, <strong>OnSurfaceSecondary</strong>, <strong>Error</strong>, <strong>Divider</strong>.</p>
-    <p>Create <code>DesignSystem/Colors.swift</code> — an <code>AppColors</code> enum with static properties:</p>
-<pre><code>enum AppColors {
-    static let primary = UIColor(named: "Primary")!
-    static let background = UIColor(named: "Background")!
-    // ... one for each token
-}</code></pre>
+    <p>Create <code>DesignSystem/Colors.swift</code> — an <code>AppColors</code> enum with static properties that load from the asset catalog with system fallbacks.</p>
     <p>Create <code>DesignSystem/Fonts.swift</code> — an <code>AppFonts</code> enum with static properties using <code>UIFont.preferredFont(forTextStyle:)</code> for: <strong>heading</strong> (.title2), <strong>subheading</strong> (.headline), <strong>body</strong> (.body), <strong>caption</strong> (.caption1), <strong>label</strong> (.footnote).</p>
     <p>Set the navigation controller's view background to <code>AppColors.background</code> in SceneDelegate to verify theming works. Toggle dark mode in the simulator (Cmd+Shift+A) to confirm both variants load.</p>
   </div>
+
+  <details>
+    <summary>Solution: Colors.swift</summary>
+    <div class="hint-body">
+<pre><code>import UIKit
+
+enum AppColors {
+    static let primary = UIColor(named: "Primary") ?? .systemRed
+    static let secondary = UIColor(named: "Secondary") ?? .secondaryLabel
+    static let background = UIColor(named: "Background") ?? .systemBackground
+    static let surface = UIColor(named: "Surface") ?? .secondarySystemBackground
+    static let onSurface = UIColor(named: "OnSurface") ?? .label
+    static let onSurfaceSecondary = UIColor(named: "OnSurfaceSecondary") ?? .secondaryLabel
+    static let error = UIColor(named: "Error") ?? .systemRed
+    static let divider = UIColor(named: "Divider") ?? .separator
+}</code></pre>
+    </div>
+  </details>
+
+  <details>
+    <summary>Solution: Fonts.swift</summary>
+    <div class="hint-body">
+<pre><code>import UIKit
+
+enum AppFonts {
+    static let heading = UIFont.preferredFont(forTextStyle: .title2)
+    static let subheading = UIFont.preferredFont(forTextStyle: .headline)
+    static let body = UIFont.preferredFont(forTextStyle: .body)
+    static let caption = UIFont.preferredFont(forTextStyle: .caption1)
+    static let label = UIFont.preferredFont(forTextStyle: .footnote)
+}</code></pre>
+    </div>
+  </details>
+
+  <details>
+    <summary>Solution: SceneDelegate.swift (updated with design system)</summary>
+    <div class="hint-body">
+<pre><code>import UIKit
+
+class SceneDelegate: UIResponder, UIWindowSceneDelegate {
+    var window: UIWindow?
+
+    func scene(
+        _ scene: UIScene,
+        willConnectTo session: UISceneSession,
+        options connectionOptions: UIScene.ConnectionOptions
+    ) {
+        guard let windowScene = scene as? UIWindowScene else { return }
+        let window = UIWindow(windowScene: windowScene)
+        let nav = UINavigationController()
+        nav.view.backgroundColor = AppColors.background
+        window.rootViewController = nav
+        window.makeKeyAndVisible()
+        self.window = window
+    }
+}</code></pre>
+    </div>
+  </details>
 
   <h2>Success Criteria</h2>
   <table class="rubric">
@@ -167,18 +260,6 @@ PinBoardTests/
 
   <h2>Commit</h2>
   <div class="commit-msg">feat: scaffold project with design system</div>
-
-  <div class="solution-links">
-    <h3>Solution</h3>
-    <p class="no-repo">Configure your GitHub repo URL in the settings bar to enable solution links.</p>
-    <ul>
-      <li><a data-branch="e01" target="_blank">Browse full solution</a></li>
-      <li><a data-branch="e01" data-path="PinBoard/App/AppDelegate.swift" target="_blank">AppDelegate.swift</a></li>
-      <li><a data-branch="e01" data-path="PinBoard/App/SceneDelegate.swift" target="_blank">SceneDelegate.swift</a></li>
-      <li><a data-branch="e01" data-path="PinBoard/DesignSystem/Colors.swift" target="_blank">Colors.swift</a></li>
-      <li><a data-branch="e01" data-path="PinBoard/DesignSystem/Fonts.swift" target="_blank">Fonts.swift</a></li>
-    </ul>
-  </div>
 
 </div>
 
