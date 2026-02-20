@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E1: Project Scaffold & Design System — PinBoard Course</title>
+  <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<div class="settings-bar">
+  <label>GitHub Repo:</label>
+  <input type="text" placeholder="owner/repo or full URL">
+  <span class="status error">Enter your repo</span>
+</div>
+
+<nav class="nav-bar">
+  <div class="nav-group">
+    <a href="index.html">← Overview</a>
+  </div>
+  <span class="nav-title">E1 of 14</span>
+  <div class="nav-group">
+    <a href="e02-networking.html">E2: Networking →</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <h1>E1: Project Scaffold &amp; Design System</h1>
+  <p class="subtitle">
+    <span class="tag tag-topic">XcodeGen</span>
+    <span class="tag tag-topic">UIKit Lifecycle</span>
+    <span class="tag tag-topic">Asset Catalogs</span>
+    <span class="tag tag-topic">Design Tokens</span>
+  </p>
+
+  <h2>Problem</h2>
+  <p>You're starting a new iOS app called <strong>PinBoard</strong>. Set up the project using XcodeGen (not Xcode's GUI project wizard), create the app lifecycle files, and establish a design system with semantic color tokens and typography that support light/dark mode and Dynamic Type.</p>
+  <p>By the end of this exercise, the app should build, launch on a simulator, and display an empty screen with your themed background color.</p>
+
+  <h2>What the Solution Looks Like</h2>
+  <p>A <code>project.yml</code> that generates a valid Xcode project with <code>xcodegen generate</code>. An <code>AppDelegate</code> and <code>SceneDelegate</code> that create a UIWindow. An asset catalog with color sets for light/dark mode. <code>AppColors</code> and <code>AppFonts</code> enums providing semantic design tokens throughout the app.</p>
+
+  <h2>Steps</h2>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 1</span>
+      <span class="step-title">Create project.yml and directory structure</span>
+    </div>
+    <p>Define an iOS app target called <code>PinBoard</code> (iOS 16.0+, Swift 5.9) and a test target <code>PinBoardTests</code>. Create the folder structure:</p>
+<pre><code>PinBoard/
+├── App/
+│   └── Coordinators/
+├── Features/
+│   ├── HomeFeed/
+│   └── PinDetail/
+├── Core/
+│   ├── Networking/
+│   └── Models/
+├── DesignSystem/
+└── Resources/
+    └── Assets.xcassets/
+
+PinBoardTests/
+├── Core/
+├── Features/
+│   ├── HomeFeed/
+│   └── PinDetail/
+├── App/
+├── Mocks/
+└── Fixtures/</code></pre>
+    <p>Run <code>xcodegen generate</code> and verify the project opens in Xcode.</p>
+  </div>
+
+  <details>
+    <summary>Hint: project.yml structure</summary>
+    <div class="hint-body">
+<pre><code>name: PinBoard
+options:
+  bundleIdPrefix: com.demo.pinboard
+  deploymentTarget:
+    iOS: "16.0"
+  xcodeVersion: "16.0"
+
+settings:
+  SWIFT_VERSION: "5.9"
+
+targets:
+  PinBoard:
+    type: application
+    platform: iOS
+    sources: [PinBoard]
+    resources: [PinBoard/Resources]
+    # ...
+  PinBoardTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [PinBoardTests]
+    dependencies:
+      - target: PinBoard</code></pre>
+    </div>
+  </details>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 2</span>
+      <span class="step-title">Create AppDelegate and SceneDelegate</span>
+    </div>
+    <p>Minimal app lifecycle. <code>AppDelegate</code> returns the default scene configuration. <code>SceneDelegate</code> creates a <code>UIWindow</code>, sets a <code>UINavigationController</code> as its root view controller, and makes it key and visible.</p>
+    <p>The app should launch and show an empty screen.</p>
+  </div>
+
+  <details>
+    <summary>Hint: SceneDelegate setup</summary>
+    <div class="hint-body">
+      <p>In <code>scene(_:willConnectTo:options:)</code>:</p>
+<pre><code>guard let windowScene = (scene as? UIWindowScene) else { return }
+let window = UIWindow(windowScene: windowScene)
+let nav = UINavigationController()
+window.rootViewController = nav
+window.makeKeyAndVisible()
+self.window = window</code></pre>
+    </div>
+  </details>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 3</span>
+      <span class="step-title">Create the design system</span>
+    </div>
+    <p>Add color sets to <code>Assets.xcassets</code> with light and dark variants for: <strong>Primary</strong>, <strong>Secondary</strong>, <strong>Background</strong>, <strong>Surface</strong>, <strong>OnSurface</strong>, <strong>OnSurfaceSecondary</strong>, <strong>Error</strong>, <strong>Divider</strong>.</p>
+    <p>Create <code>AppColors</code> enum with static properties returning <code>UIColor(named:)</code> for each token.</p>
+    <p>Create <code>AppFonts</code> enum with static properties using <code>UIFont.preferredFont(forTextStyle:)</code> for: <strong>heading</strong> (.title2), <strong>subheading</strong> (.headline), <strong>body</strong> (.body), <strong>caption</strong> (.caption1), <strong>label</strong> (.footnote).</p>
+    <p>Set the navigation controller's view background to <code>AppColors.background</code> to verify theming works.</p>
+  </div>
+
+  <details>
+    <summary>Hint: Asset catalog color sets</summary>
+    <div class="hint-body">
+      <p>Each color set in <code>Assets.xcassets</code> needs a <code>Contents.json</code> with both "Any" and "Dark" appearances. Create folders like <code>Assets.xcassets/Colors/Primary.colorset/</code>.</p>
+      <p>Alternatively, add colors through Xcode's asset catalog GUI — easier for picking color values.</p>
+    </div>
+  </details>
+
+  <h2>Success Criteria</h2>
+  <table class="rubric">
+    <thead><tr><th>Level</th><th>Criteria</th></tr></thead>
+    <tbody>
+      <tr><td class="label-min">Minimal</td><td>App builds with <code>xcodegen generate</code>, launches on simulator, shows empty screen with themed background</td></tr>
+      <tr><td class="label-ext">Extended</td><td>All 8 color tokens defined with light/dark variants. All 5 font tokens use Dynamic Type. Background color visible on launch.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Tests</h2>
+  <p>None for this exercise — verification is visual (app launches, background color is correct).</p>
+
+  <h2>Commit</h2>
+  <div class="commit-msg">feat: scaffold project with XcodeGen and design system</div>
+
+  <div class="solution-links">
+    <h3>Solution</h3>
+    <p class="no-repo">Configure your GitHub repo URL in the settings bar to enable solution links.</p>
+    <ul>
+      <li><a data-branch="e01" target="_blank">Browse full solution</a></li>
+      <li><a data-branch="e01" data-path="project.yml" target="_blank">project.yml</a></li>
+      <li><a data-branch="e01" data-path="PinBoard/App/AppDelegate.swift" target="_blank">AppDelegate.swift</a></li>
+      <li><a data-branch="e01" data-path="PinBoard/App/SceneDelegate.swift" target="_blank">SceneDelegate.swift</a></li>
+      <li><a data-branch="e01" data-path="PinBoard/DesignSystem/Colors.swift" target="_blank">Colors.swift</a></li>
+      <li><a data-branch="e01" data-path="PinBoard/DesignSystem/Fonts.swift" target="_blank">Fonts.swift</a></li>
+    </ul>
+  </div>
+
+</div>
+
+<script src="shared.js"></script>
+</body>
+</html>

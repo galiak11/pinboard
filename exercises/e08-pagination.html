@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E8: Pagination — PinBoard Course</title>
+  <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<div class="settings-bar">
+  <label>GitHub Repo:</label>
+  <input type="text" placeholder="owner/repo or full URL">
+  <span class="status error">Enter your repo</span>
+</div>
+
+<nav class="nav-bar">
+  <div class="nav-group">
+    <a href="index.html">← Overview</a>
+    <a href="e07-image-loading.html">← E7: Image Loading</a>
+  </div>
+  <span class="nav-title">E8 of 14</span>
+  <div class="nav-group">
+    <a href="e09-pin-detail.html">E9: Pin Detail →</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <h1>E8: Pagination</h1>
+  <p class="subtitle">
+    <span class="tag tag-topic">Infinite Scroll</span>
+    <span class="tag tag-topic">State Machine</span>
+    <span class="tag tag-topic">Pull-to-Refresh</span>
+    <span class="tag tag-topic">Loading Indicators</span>
+    <span class="tag tag-prereq">Requires E6, E7</span>
+  </p>
+
+  <h2>Problem</h2>
+  <p>The feed only shows the first page of 20 photos. Add infinite scroll — when the user scrolls near the bottom, load the next page and append results. Show a loading spinner in the footer during pagination. Add pull-to-refresh to reset and reload from page 1.</p>
+
+  <h2>What the Solution Looks Like</h2>
+  <p>The ViewModel's state machine is extended with a <code>.loadingMore</code> state and <code>loadNextPage()</code> method. The VC detects proximity to the bottom via <code>willDisplay</code> and triggers the next page. A <code>LoadingFooterView</code> (supplementary view) shows during loads. Pull-to-refresh via <code>UIRefreshControl</code> resets to page 1.</p>
+
+  <h2>Steps</h2>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 1</span>
+      <span class="step-title">Extend the ViewModel state machine</span>
+    </div>
+    <p>Add <code>.loadingMore</code> to <code>FeedState</code>. Add <code>loadNextPage()</code>:</p>
+    <ul>
+      <li>Only fires from <code>.loaded(hasMore: true)</code> — ignored in all other states</li>
+      <li>Transitions to <code>.loadingMore</code></li>
+      <li>Increments page, fetches, <strong>appends</strong> new cell VMs to existing array</li>
+      <li>If response count &lt; page size → <code>hasMore = false</code></li>
+    </ul>
+    <p>Add <code>didPullToRefresh()</code>:</p>
+    <ul>
+      <li>Resets page to 1, clears cell VMs array</li>
+      <li>Transitions to <code>.loading</code>, fetches fresh data</li>
+      <li>Ignored if already in <code>.loading</code> state</li>
+    </ul>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 2</span>
+      <span class="step-title">Create LoadingFooterView</span>
+    </div>
+    <p>A <code>UICollectionReusableView</code> subclass with a centered <code>UIActivityIndicatorView</code>. Register it as a supplementary footer view in the collection view's layout. Show/hide the spinner based on the ViewModel state.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 3</span>
+      <span class="step-title">Wire scroll-triggered pagination</span>
+    </div>
+    <p>In <code>collectionView(_:willDisplay:forItemAt:)</code>, check if the displayed item is within the last 4 items. If so and state is <code>.loaded(hasMore: true)</code>, call <code>viewModel.loadNextPage()</code>.</p>
+    <p>When new cell VMs arrive, build a new snapshot that includes all IDs (existing + new) and apply with animation.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 4</span>
+      <span class="step-title">Add pull-to-refresh</span>
+    </div>
+    <p>Add a <code>UIRefreshControl</code> to the collection view. On <code>.valueChanged</code>, call <code>viewModel.didPullToRefresh()</code>. When state transitions away from <code>.loading</code>, call <code>refreshControl.endRefreshing()</code>. On refresh, apply the new snapshot <strong>without</strong> animation (full replacement).</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 5</span>
+      <span class="step-title">Update tests</span>
+    </div>
+    <p>Add to <code>HomeFeedViewModelTests</code>:</p>
+    <ul>
+      <li><code>loadNextPage</code> from loaded → transitions to loadingMore, page incremented</li>
+      <li><code>loadNextPage</code> when already loading → ignored (no duplicate fetch)</li>
+      <li><code>loadNextPage</code> when <code>hasMore: false</code> → ignored</li>
+      <li><code>didPullToRefresh</code> → resets page, clears data, transitions to loading</li>
+      <li><code>didPullToRefresh</code> during loading → ignored</li>
+      <li><code>didPullToRefresh</code> from error → triggers reload</li>
+    </ul>
+  </div>
+
+  <h2>Success Criteria</h2>
+  <table class="rubric">
+    <thead><tr><th>Level</th><th>Criteria</th></tr></thead>
+    <tbody>
+      <tr><td class="label-min">Minimal</td><td>Scrolling to bottom loads more pages. Pull-to-refresh works. All tests pass.</td></tr>
+      <tr><td class="label-ext">Extended</td><td>No duplicate loads when scrolling fast. Loading spinner visible in footer. Smooth append animations. Refresh replaces snapshot without animation.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Tests</h2>
+  <p><span class="tag tag-test">HomeFeedViewModelTests</span> (pagination cases)</p>
+
+  <h2>Commit</h2>
+  <div class="commit-msg">feat: add pagination with infinite scroll and pull-to-refresh</div>
+
+  <div class="solution-links">
+    <h3>Solution</h3>
+    <p class="no-repo">Configure your GitHub repo URL in the settings bar to enable solution links.</p>
+    <ul>
+      <li><a data-branch="e08" target="_blank">Browse full solution</a></li>
+      <li><a data-diff="e07..e08" target="_blank">View diff from E7</a></li>
+      <li><a data-branch="e08" data-path="PinBoard/Features/HomeFeed/HomeFeedViewModel.swift" target="_blank">HomeFeedViewModel.swift (pagination)</a></li>
+      <li><a data-branch="e08" data-path="PinBoard/Features/HomeFeed/HomeFeedViewController.swift" target="_blank">HomeFeedViewController.swift (scroll detection)</a></li>
+      <li><a data-branch="e08" data-path="PinBoard/DesignSystem/LoadingFooterView.swift" target="_blank">LoadingFooterView.swift</a></li>
+      <li><a data-branch="e08" data-path="PinBoardTests/Features/HomeFeed/HomeFeedViewModelTests.swift" target="_blank">HomeFeedViewModelTests.swift</a></li>
+    </ul>
+  </div>
+
+</div>
+
+<script src="shared.js"></script>
+</body>
+</html>

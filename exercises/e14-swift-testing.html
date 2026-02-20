@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E14: Swift Testing Migration — PinBoard Course</title>
+  <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<div class="settings-bar">
+  <label>GitHub Repo:</label>
+  <input type="text" placeholder="owner/repo or full URL">
+  <span class="status error">Enter your repo</span>
+</div>
+
+<nav class="nav-bar">
+  <div class="nav-group">
+    <a href="index.html">← Overview</a>
+    <a href="e13-deep-linking.html">← E13: Deep Linking</a>
+  </div>
+  <span class="nav-title">E14 of 14</span>
+  <div class="nav-group">
+    <span style="color: var(--green);">Final Exercise</span>
+  </div>
+</nav>
+
+<div class="container">
+
+  <h1>E14: Swift Testing Migration</h1>
+  <p class="subtitle">
+    <span class="tag tag-topic">@Suite</span>
+    <span class="tag tag-topic">@Test</span>
+    <span class="tag tag-topic">#expect</span>
+    <span class="tag tag-topic">XCTest Coexistence</span>
+    <span class="tag tag-prereq">Requires E2-E13</span>
+  </p>
+
+  <h2>Problem</h2>
+  <p>The project uses XCTest throughout. Apple's Swift Testing framework offers a more modern, declarative syntax. Migrate all test files to Swift Testing while keeping one file (<code>APIClientTests</code>) in XCTest to demonstrate that both frameworks coexist in the same test target.</p>
+
+  <h2>What the Solution Looks Like</h2>
+  <p>All test files except <code>APIClientTests.swift</code> use Swift Testing: <code>@Suite</code> structs instead of <code>XCTestCase</code> classes, <code>@Test</code> instead of <code>func test...</code>, <code>#expect</code> instead of <code>XCTAssert*</code>. A <code>TestBundleAnchor</code> class in Fixtures.swift handles bundle loading for structs.</p>
+
+  <h2>Syntax Reference</h2>
+  <table class="rubric">
+    <thead><tr><th>XCTest</th><th>Swift Testing</th></tr></thead>
+    <tbody>
+      <tr><td><code>class FooTests: XCTestCase</code></td><td><code>@Suite("Foo") struct FooTests</code></td></tr>
+      <tr><td><code>func testSomething()</code></td><td><code>@Test func something()</code></td></tr>
+      <tr><td><code>XCTAssertEqual(a, b)</code></td><td><code>#expect(a == b)</code></td></tr>
+      <tr><td><code>XCTAssertTrue(x)</code></td><td><code>#expect(x)</code></td></tr>
+      <tr><td><code>XCTAssertNil(x)</code></td><td><code>#expect(x == nil)</code></td></tr>
+      <tr><td><code>XCTAssertNotNil(x)</code></td><td><code>#expect(x != nil)</code></td></tr>
+      <tr><td><code>XCTFail("msg")</code></td><td><code>Issue.record("msg")</code></td></tr>
+      <tr><td><code>XCTAssertThrowsError</code></td><td><code>#expect(throws: E.self) { try ... }</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2>Steps</h2>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 1</span>
+      <span class="step-title">Understand the key differences</span>
+    </div>
+    <p>Before converting, understand what changes:</p>
+    <ul>
+      <li>Swift Testing uses <strong>structs</strong>, not classes — no <code>setUp()</code>/<code>tearDown()</code>, use <code>init()</code> instead</li>
+      <li><code>@MainActor</code> annotation on the struct for UI-related tests (coordinator tests)</li>
+      <li><code>Bundle(for:)</code> needs a class — structs can't be passed. Create a <code>TestBundleAnchor</code> class</li>
+      <li>XCTest and Swift Testing run side-by-side in the same target — no configuration needed</li>
+    </ul>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 2</span>
+      <span class="step-title">Add TestBundleAnchor to Fixtures</span>
+    </div>
+    <p>Since Swift Testing test types are structs, <code>Bundle(for: type(of: self))</code> doesn't work. Add a class anchor:</p>
+<pre><code>private class TestBundleAnchor {}
+
+enum Fixtures {
+    static func loadFixture(_ name: String) -> Data {
+        let bundle = Bundle(for: TestBundleAnchor.self)
+        let url = bundle.url(forResource: name, withExtension: "json")!
+        return try! Data(contentsOf: url)
+    }
+}</code></pre>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 3</span>
+      <span class="step-title">Migrate HomeFeedViewModelTests as example</span>
+    </div>
+    <p>Convert this file first as a reference pattern:</p>
+<pre><code>// Before (XCTest)
+import XCTest
+@testable import PinBoard
+
+final class HomeFeedViewModelTests: XCTestCase {
+    func testViewDidLoad_triggersLoading() async {
+        // ...
+        XCTAssertEqual(states.first, .loading)
+    }
+}
+
+// After (Swift Testing)
+import Testing
+import Combine
+@testable import PinBoard
+
+@Suite("HomeFeedViewModel")
+struct HomeFeedViewModelTests {
+    @Test func viewDidLoad_triggersLoading() async {
+        // ...
+        #expect(states.first == .loading)
+    }
+}</code></pre>
+    <p>For Combine-based tests, use the same <code>$state.sink</code> + <code>Task.sleep</code> pattern.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 4</span>
+      <span class="step-title">Migrate all remaining test files</span>
+    </div>
+    <p>Convert each test file following the same pattern. Files to convert:</p>
+    <ul>
+      <li><code>UnsplashEndpointsTests</code></li>
+      <li><code>ModelDecodingTests</code></li>
+      <li><code>ImageCachingTests</code></li>
+      <li><code>AppCoordinatorTests</code> — add <code>@MainActor</code></li>
+      <li><code>MainTabCoordinatorTests</code> — add <code>@MainActor</code></li>
+      <li><code>HomeFeedCoordinatorTests</code> — add <code>@MainActor</code></li>
+      <li><code>HomeFeedServiceTests</code></li>
+      <li><code>PhotoCellViewModelTests</code></li>
+      <li><code>PinDetailServiceTests</code></li>
+      <li><code>PinDetailViewModelTests</code></li>
+      <li><code>PinDetailCoordinatorTests</code> — add <code>@MainActor</code></li>
+      <li><code>AppRouteTests</code></li>
+    </ul>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 5</span>
+      <span class="step-title">Keep APIClientTests as XCTest</span>
+    </div>
+    <p>Intentionally leave <code>APIClientTests.swift</code> as-is. It uses <code>setUp()</code>/<code>tearDown()</code> for <code>URLProtocol.registerClass</code>/<code>unregisterClass</code>, which maps naturally to XCTest lifecycle. This demonstrates coexistence.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 6</span>
+      <span class="step-title">Verify all tests pass</span>
+    </div>
+    <p>Run the full test suite. Both Swift Testing (<code>@Test</code>) and XCTest (<code>func test...</code>) tests should discover and run together.</p>
+<pre><code>xcodegen generate
+xcodebuild test -scheme PinBoard -destination 'platform=iOS Simulator,name=iPhone 16'</code></pre>
+  </div>
+
+  <h2>Success Criteria</h2>
+  <table class="rubric">
+    <thead><tr><th>Level</th><th>Criteria</th></tr></thead>
+    <tbody>
+      <tr><td class="label-min">Minimal</td><td>All test files converted and passing. One XCTest file retained (APIClientTests).</td></tr>
+      <tr><td class="label-ext">Extended</td><td>Clean Swift Testing idioms (not just mechanical syntax swap). @MainActor on coordinator tests. TestBundleAnchor pattern for fixture loading. Both frameworks run in the same test target.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Tests</h2>
+  <p><span class="tag tag-test">All test files</span> (migrated format)</p>
+
+  <h2>Commit</h2>
+  <div class="commit-msg">refactor: migrate tests to Swift Testing, keep APIClientTests as XCTest</div>
+
+  <div class="solution-links">
+    <h3>Solution</h3>
+    <p class="no-repo">Configure your GitHub repo URL in the settings bar to enable solution links.</p>
+    <ul>
+      <li><a data-branch="e14" target="_blank">Browse full solution</a></li>
+      <li><a data-diff="e13..e14" target="_blank">View diff from E13</a></li>
+      <li><a data-branch="e14" data-path="PinBoardTests/Mocks/Fixtures.swift" target="_blank">Fixtures.swift (TestBundleAnchor)</a></li>
+      <li><a data-branch="e14" data-path="PinBoardTests/Features/HomeFeed/HomeFeedViewModelTests.swift" target="_blank">HomeFeedViewModelTests.swift (Swift Testing)</a></li>
+      <li><a data-branch="e14" data-path="PinBoardTests/Core/APIClientTests.swift" target="_blank">APIClientTests.swift (kept as XCTest)</a></li>
+      <li><a data-branch="e14" data-path="PinBoardTests/App/AppCoordinatorTests.swift" target="_blank">AppCoordinatorTests.swift (@MainActor)</a></li>
+    </ul>
+  </div>
+
+</div>
+
+<script src="shared.js"></script>
+</body>
+</html>

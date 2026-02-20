@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E6: Home Feed UI — PinBoard Course</title>
+  <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<div class="settings-bar">
+  <label>GitHub Repo:</label>
+  <input type="text" placeholder="owner/repo or full URL">
+  <span class="status error">Enter your repo</span>
+</div>
+
+<nav class="nav-bar">
+  <div class="nav-group">
+    <a href="index.html">← Overview</a>
+    <a href="e05-feed-viewmodel.html">← E5: Feed ViewModel</a>
+  </div>
+  <span class="nav-title">E6 of 14</span>
+  <div class="nav-group">
+    <a href="e07-image-loading.html">E7: Image Loading →</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <h1>E6: Home Feed UI</h1>
+  <p class="subtitle">
+    <span class="tag tag-topic">UICollectionView</span>
+    <span class="tag tag-topic">CompositionalLayout</span>
+    <span class="tag tag-topic">DiffableDataSource</span>
+    <span class="tag tag-topic">Custom Cells</span>
+    <span class="tag tag-topic">Delegation</span>
+    <span class="tag tag-prereq">Requires E5</span>
+  </p>
+
+  <h2>Problem</h2>
+  <p>Build the Home Feed screen — a scrollable grid of photo cards. Start simple (basic collection view with default cells), then progressively upgrade to a custom cell, diffable data source, and waterfall layout. Wire navigation through a coordinator rather than coupling it to the VC.</p>
+
+  <h2>What the Solution Looks Like</h2>
+  <p>A <code>HomeFeedViewController</code> with a 2-column waterfall grid using <code>UICollectionViewCompositionalLayout</code> and <code>UICollectionViewDiffableDataSource</code>. A custom <code>PhotoCell</code> showing a colored placeholder (images come in E7). A <code>HomeFeedCoordinator</code> that creates the VC and handles navigation via <code>HomeFeedDelegate</code>.</p>
+
+  <h2>Steps</h2>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 1</span>
+      <span class="step-title">Basic VC with collection view and default cells</span>
+    </div>
+    <p>Create <code>HomeFeedViewController</code> with a <code>UICollectionView</code> using <code>UICollectionViewFlowLayout</code>. Register a basic <code>UICollectionViewCell</code> using <code>CellRegistration</code>. In the cell, just show the photo title in a label.</p>
+    <p>Bind to the ViewModel: on <code>onPhotosUpdated</code>, store the cell view models and call <code>reloadData()</code>. On <code>onStateChanged</code>, show/hide a <code>UIActivityIndicatorView</code>. Call <code>viewModel.viewDidLoad()</code> in <code>viewDidLoad()</code>.</p>
+    <p>Temporarily wire it directly in <code>AppCoordinator</code> to see it on screen.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 2</span>
+      <span class="step-title">Custom PhotoCell</span>
+    </div>
+    <p>Create <code>PhotoCell</code>: a <code>UICollectionViewCell</code> subclass with a full-bleed <code>UIImageView</code> and a semi-transparent bottom overlay containing the photo title. Use auto-layout to pin the image view to all edges.</p>
+    <p><code>configure(with: PhotoCellViewModel)</code> sets the title. For now, set the image view's background color based on the aspect ratio (just to visualize cell sizes). Implement <code>prepareForReuse()</code> to reset the image and title.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 3</span>
+      <span class="step-title">Diffable data source</span>
+    </div>
+    <p>Replace the <code>UICollectionViewDataSource</code> methods with a <code>UICollectionViewDiffableDataSource&lt;Section, String&gt;</code>. Define a <code>Section</code> enum with <code>.main</code>. The cell provider closure dequeues <code>PhotoCell</code> and configures it.</p>
+    <p>On <code>onPhotosUpdated</code>, build a <code>NSDiffableDataSourceSnapshot</code> from the cell view model IDs and <code>apply()</code> it.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 4</span>
+      <span class="step-title">Waterfall compositional layout</span>
+    </div>
+    <p>Create <code>WaterfallLayout</code> — a factory that builds a <code>UICollectionViewCompositionalLayout</code> using the <code>NSCollectionLayoutSection</code> provider closure. 2 columns. Item heights are calculated from aspect ratios (you'll need a callback to get the aspect ratio for an index). 8pt inter-item spacing, 8pt section insets.</p>
+    <p>Replace the flow layout with the waterfall layout in the VC.</p>
+  </div>
+
+  <details>
+    <summary>Hint: Waterfall layout approach</summary>
+    <div class="hint-body">
+      <p>CompositionalLayout doesn't have built-in waterfall support. The common approach is to use a custom <code>NSCollectionLayoutSection</code> provider that pre-calculates item positions using column heights tracking, similar to how Pinterest's layout works. Each item is an <code>NSCollectionLayoutGroupCustomItem</code> with an absolute frame.</p>
+<pre><code>UICollectionViewCompositionalLayout { sectionIndex, environment in
+    let items = // calculate frames for each item
+    let group = NSCollectionLayoutGroup.custom(layoutSize: groupSize) { _ in items }
+    return NSCollectionLayoutSection(group: group)
+}</code></pre>
+    </div>
+  </details>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 5</span>
+      <span class="step-title">HomeFeedCoordinator and delegate</span>
+    </div>
+    <p>Create <code>HomeFeedDelegate</code> protocol with <code>homeFeedDidSelectPhoto(id: String)</code>. Create <code>HomeFeedCoordinator</code> that:</p>
+    <ul>
+      <li>Creates the ViewModel (with the service from the container) and ViewController</li>
+      <li>Conforms to <code>HomeFeedDelegate</code></li>
+      <li>On photo selection, prints the ID (detail screen comes in E9)</li>
+    </ul>
+    <p>Wire <code>didSelectItemAt</code> in the VC to call the delegate.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 6</span>
+      <span class="step-title">Wire into app navigation</span>
+    </div>
+    <p>Update <code>AppCoordinator.start()</code> to create <code>HomeFeedCoordinator</code> as a child, passing the container and navigation controller. Remove any temporary wiring from Step 1.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 7</span>
+      <span class="step-title">Write tests</span>
+    </div>
+    <p><code>HomeFeedCoordinatorTests</code>: verify <code>start()</code> pushes a <code>HomeFeedViewController</code>. Create <code>MockHomeFeedDelegate</code> to verify delegate calls.</p>
+  </div>
+
+  <h2>Success Criteria</h2>
+  <table class="rubric">
+    <thead><tr><th>Level</th><th>Criteria</th></tr></thead>
+    <tbody>
+      <tr><td class="label-min">Minimal</td><td>App shows a waterfall grid of colored placeholder cells with photo titles from the real Unsplash API.</td></tr>
+      <tr><td class="label-ext">Extended</td><td>Diffable data source with smooth animations. Proper cell reuse. Coordinator tests pass. Delegate pattern for photo selection.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Tests</h2>
+  <p><span class="tag tag-test">HomeFeedCoordinatorTests</span></p>
+
+  <h2>Commit</h2>
+  <div class="commit-msg">feat: add home feed UI with waterfall layout and diffable data source</div>
+
+  <div class="solution-links">
+    <h3>Solution</h3>
+    <p class="no-repo">Configure your GitHub repo URL in the settings bar to enable solution links.</p>
+    <ul>
+      <li><a data-branch="e06" target="_blank">Browse full solution</a></li>
+      <li><a data-diff="e05..e06" target="_blank">View diff from E5</a></li>
+      <li><a data-branch="e06" data-path="PinBoard/Features/HomeFeed/HomeFeedViewController.swift" target="_blank">HomeFeedViewController.swift</a></li>
+      <li><a data-branch="e06" data-path="PinBoard/Features/HomeFeed/PhotoCell.swift" target="_blank">PhotoCell.swift</a></li>
+      <li><a data-branch="e06" data-path="PinBoard/Features/HomeFeed/WaterfallLayout.swift" target="_blank">WaterfallLayout.swift</a></li>
+      <li><a data-branch="e06" data-path="PinBoard/Features/HomeFeed/HomeFeedCoordinator.swift" target="_blank">HomeFeedCoordinator.swift</a></li>
+      <li><a data-branch="e06" data-path="PinBoard/Features/HomeFeed/HomeFeedDelegate.swift" target="_blank">HomeFeedDelegate.swift</a></li>
+      <li><a data-branch="e06" data-path="PinBoardTests/Features/HomeFeed/HomeFeedCoordinatorTests.swift" target="_blank">HomeFeedCoordinatorTests.swift</a></li>
+      <li><a data-branch="e06" data-path="PinBoardTests/Mocks/MockHomeFeedDelegate.swift" target="_blank">MockHomeFeedDelegate.swift</a></li>
+    </ul>
+  </div>
+
+</div>
+
+<script src="shared.js"></script>
+</body>
+</html>

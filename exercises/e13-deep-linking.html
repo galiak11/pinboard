@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E13: Deep Linking & Scoped DI — PinBoard Course</title>
+  <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<div class="settings-bar">
+  <label>GitHub Repo:</label>
+  <input type="text" placeholder="owner/repo or full URL">
+  <span class="status error">Enter your repo</span>
+</div>
+
+<nav class="nav-bar">
+  <div class="nav-group">
+    <a href="index.html">← Overview</a>
+    <a href="e12-state-errors.html">← E12: State & Errors</a>
+  </div>
+  <span class="nav-title">E13 of 14</span>
+  <div class="nav-group">
+    <a href="e14-swift-testing.html">E14: Swift Testing →</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <h1>E13: Deep Linking &amp; Scoped DI Containers</h1>
+  <p class="subtitle">
+    <span class="tag tag-topic">URL Schemes</span>
+    <span class="tag tag-topic">Route Parsing</span>
+    <span class="tag tag-topic">Scoped Containers</span>
+    <span class="tag tag-topic">Coordinator Navigation</span>
+    <span class="tag tag-prereq">Requires E10, E4</span>
+  </p>
+
+  <h2>Problem</h2>
+  <p>The app should respond to custom URL schemes like <code>pinboard://home</code> and <code>pinboard://photo/abc-123</code>. Additionally, the flat DI container passes too much context — split it into scoped containers where each feature gets its own container that holds feature-specific services while delegating shared services to the parent.</p>
+
+  <h2>What the Solution Looks Like</h2>
+  <p><code>AppRoute</code> enum parses URLs into typed routes. Coordinators implement <code>navigate(to:)</code> cascading from App → MainTab → HomeFeed. Scoped containers (<code>HomeFeedDependencyContainer</code>, <code>PinDetailDependencyContainer</code>) replace direct access to the root container in feature coordinators.</p>
+
+  <h2>Steps</h2>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 1</span>
+      <span class="step-title">Create AppRoute</span>
+    </div>
+    <p>An enum with cases <code>.home</code> and <code>.photoDetail(id: String)</code>. Failable <code>init?(url: URL)</code> that:</p>
+    <ul>
+      <li>Checks scheme is <code>pinboard</code></li>
+      <li>Parses host: <code>"home"</code> → <code>.home</code>, <code>"photo"</code> → extract ID from path</li>
+      <li>Returns nil for unknown hosts, invalid schemes, or missing IDs</li>
+    </ul>
+    <p>Conform to <code>Equatable</code> for easy testing.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 2</span>
+      <span class="step-title">Create scoped DI containers</span>
+    </div>
+    <p><code>HomeFeedDependencyContainer</code>:</p>
+    <ul>
+      <li>Holds reference to <code>parent: AppDependencyContainer</code></li>
+      <li>Exposes <code>apiClient</code> and <code>imageCache</code> via parent (computed properties)</li>
+      <li>Owns <code>homeFeedService: HomeFeedServiceProtocol</code> (lazy)</li>
+      <li>Factory: <code>makePinDetailContainer(photoID:)</code></li>
+    </ul>
+    <p><code>PinDetailDependencyContainer</code>:</p>
+    <ul>
+      <li>Holds reference to parent + <code>photoID: String</code></li>
+      <li>Exposes shared services via parent</li>
+      <li>Owns <code>pinDetailService: PinDetailServiceProtocol</code> (lazy)</li>
+    </ul>
+    <p>Add factory methods on <code>AppDependencyContainer</code>: <code>makeHomeFeedContainer()</code>, <code>makePinDetailContainer(photoID:)</code>.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 3</span>
+      <span class="step-title">Update coordinators for scoped containers</span>
+    </div>
+    <p>Change <code>HomeFeedCoordinator</code> to take <code>HomeFeedDependencyContainer</code> instead of <code>AppDependencyContainer</code>. Change <code>PinDetailCoordinator</code> to take <code>PinDetailDependencyContainer</code>. Update the container references and factory calls throughout.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 4</span>
+      <span class="step-title">Implement navigate chain</span>
+    </div>
+    <p>Add <code>navigate(to route: AppRoute)</code> to coordinators:</p>
+    <ul>
+      <li><code>AppCoordinator</code>: delegates to <code>mainTabCoordinator.navigate(to:)</code></li>
+      <li><code>MainTabCoordinator</code>: for <code>.home</code> → select home tab. For <code>.photoDetail(id:)</code> → select home tab, pop to root, call <code>homeFeedCoordinator.showPhotoDetail(id:)</code></li>
+      <li>Extract <code>showPhotoDetail(id:)</code> as a public method on <code>HomeFeedCoordinator</code></li>
+    </ul>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 5</span>
+      <span class="step-title">Wire SceneDelegate</span>
+    </div>
+    <p>Handle URLs at launch in <code>scene(_:willConnectTo:options:)</code> — check <code>connectionOptions.urlContexts</code>. Handle URLs at runtime in <code>scene(_:openURLContexts:)</code>. Both parse URL → <code>AppRoute</code> → <code>appCoordinator.navigate(to:)</code>.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 6</span>
+      <span class="step-title">Write tests</span>
+    </div>
+    <p><code>AppRouteTests</code>:</p>
+    <ul>
+      <li><code>pinboard://home</code> → <code>.home</code></li>
+      <li><code>pinboard://photo/abc-123</code> → <code>.photoDetail(id: "abc-123")</code></li>
+      <li><code>https://photo/abc</code> → nil (wrong scheme)</li>
+      <li><code>pinboard://settings</code> → nil (unknown host)</li>
+      <li><code>pinboard://photo</code> → nil (missing ID)</li>
+    </ul>
+    <p>Update coordinator tests to use the new scoped containers.</p>
+  </div>
+
+  <h2>Success Criteria</h2>
+  <table class="rubric">
+    <thead><tr><th>Level</th><th>Criteria</th></tr></thead>
+    <tbody>
+      <tr><td class="label-min">Minimal</td><td><code>pinboard://photo/abc</code> opens the detail screen. Route parsing tests pass.</td></tr>
+      <tr><td class="label-ext">Extended</td><td>Scoped containers properly isolate dependencies. Both launch-time and runtime deep links work. Coordinator tests updated for scoped containers.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Tests</h2>
+  <p><span class="tag tag-test">AppRouteTests</span> <span class="tag tag-test">Updated coordinator tests</span></p>
+
+  <h2>Commit</h2>
+  <div class="commit-msg">feat: add deep linking with URL routing and scoped DI containers</div>
+
+  <div class="solution-links">
+    <h3>Solution</h3>
+    <p class="no-repo">Configure your GitHub repo URL in the settings bar to enable solution links.</p>
+    <ul>
+      <li><a data-branch="e13" target="_blank">Browse full solution</a></li>
+      <li><a data-diff="e12..e13" target="_blank">View diff from E12</a></li>
+      <li><a data-branch="e13" data-path="PinBoard/App/AppRoute.swift" target="_blank">AppRoute.swift</a></li>
+      <li><a data-branch="e13" data-path="PinBoard/App/HomeFeedDependencyContainer.swift" target="_blank">HomeFeedDependencyContainer.swift</a></li>
+      <li><a data-branch="e13" data-path="PinBoard/App/PinDetailDependencyContainer.swift" target="_blank">PinDetailDependencyContainer.swift</a></li>
+      <li><a data-branch="e13" data-path="PinBoard/App/AppDependencyContainer.swift" target="_blank">AppDependencyContainer.swift (factories)</a></li>
+      <li><a data-branch="e13" data-path="PinBoard/App/Coordinators/MainTabCoordinator.swift" target="_blank">MainTabCoordinator.swift (navigate)</a></li>
+      <li><a data-branch="e13" data-path="PinBoard/App/SceneDelegate.swift" target="_blank">SceneDelegate.swift (URL handling)</a></li>
+      <li><a data-branch="e13" data-path="PinBoardTests/App/AppRouteTests.swift" target="_blank">AppRouteTests.swift</a></li>
+    </ul>
+  </div>
+
+</div>
+
+<script src="shared.js"></script>
+</body>
+</html>

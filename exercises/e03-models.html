@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E3: Data Models & JSON Fixtures — PinBoard Course</title>
+  <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<div class="settings-bar">
+  <label>GitHub Repo:</label>
+  <input type="text" placeholder="owner/repo or full URL">
+  <span class="status error">Enter your repo</span>
+</div>
+
+<nav class="nav-bar">
+  <div class="nav-group">
+    <a href="index.html">← Overview</a>
+    <a href="e02-networking.html">← E2: Networking</a>
+  </div>
+  <span class="nav-title">E3 of 14</span>
+  <div class="nav-group">
+    <a href="e04-coordinators.html">E4: Coordinators →</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <h1>E3: Data Models &amp; JSON Fixtures</h1>
+  <p class="subtitle">
+    <span class="tag tag-topic">Codable</span>
+    <span class="tag tag-topic">CodingKeys</span>
+    <span class="tag tag-topic">Nested JSON</span>
+    <span class="tag tag-topic">Test Fixtures</span>
+    <span class="tag tag-prereq">Requires E2</span>
+  </p>
+
+  <h2>Problem</h2>
+  <p>Create Decodable models for the Unsplash API responses. The API returns snake_case JSON with nested objects (urls, user, exif). Use real API response samples as test fixtures to ensure your models handle all fields correctly — including optional ones like <code>description</code>, <code>exif</code>, and <code>location</code>.</p>
+
+  <h2>What the Solution Looks Like</h2>
+  <p><code>UnsplashPhoto</code> and <code>UnsplashUser</code> structs with CodingKeys for snake_case mapping. JSON fixture files containing sanitized real API responses. A <code>Fixtures</code> helper for loading test data. Decoding tests that verify every field.</p>
+
+  <h2>Steps</h2>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 1</span>
+      <span class="step-title">Create UnsplashPhoto and UnsplashUser models</span>
+    </div>
+    <p><code>UnsplashPhoto</code> fields: <code>id</code>, <code>description</code> (optional), <code>urls</code> (nested: raw, full, regular, small, thumb), <code>width</code>, <code>height</code>, <code>likes</code>, <code>user: UnsplashUser</code>, <code>createdAt</code> (String). For the detail endpoint, also: <code>exif</code> (optional, nested: make, model, aperture, exposureTime, focalLength, iso) and <code>location</code> (optional).</p>
+    <p><code>UnsplashUser</code> fields: <code>name</code>, <code>username</code>, <code>profileImage</code> (nested: small, medium, large).</p>
+    <p>Use <code>CodingKeys</code> for snake_case → camelCase mapping (e.g., <code>created_at</code> → <code>createdAt</code>, <code>profile_image</code> → <code>profileImage</code>).</p>
+  </div>
+
+  <details>
+    <summary>Hint: Nested URL model</summary>
+    <div class="hint-body">
+<pre><code>struct UnsplashPhoto: Decodable, Identifiable {
+    let id: String
+    let description: String?
+    let urls: URLs
+    let width: Int
+    let height: Int
+    let likes: Int
+    let user: UnsplashUser
+    let createdAt: String
+
+    struct URLs: Decodable {
+        let raw: URL
+        let full: URL
+        let regular: URL
+        let small: URL
+        let thumb: URL
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id, description, urls, width, height, likes, user
+        case createdAt = "created_at"
+    }
+}</code></pre>
+    </div>
+  </details>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 2</span>
+      <span class="step-title">Create JSON fixtures and test helper</span>
+    </div>
+    <p>Add two JSON files to <code>PinBoardTests/Fixtures/</code>:</p>
+    <ul>
+      <li><code>photos_page1.json</code> — array of 3-5 photo objects (list endpoint format)</li>
+      <li><code>photo_detail.json</code> — single photo with exif and location (detail endpoint format)</li>
+    </ul>
+    <p>Create a <code>Fixtures</code> enum in <code>PinBoardTests/Mocks/Fixtures.swift</code> with a static <code>loadFixture(_ name: String) -> Data</code> method that loads JSON from the test bundle. You'll need a class anchor for <code>Bundle(for:)</code> since test types may be structs.</p>
+  </div>
+
+  <details>
+    <summary>Hint: Bundle loading for test fixtures</summary>
+    <div class="hint-body">
+<pre><code>private class TestBundleAnchor {}
+
+enum Fixtures {
+    static func loadFixture(_ name: String) -> Data {
+        let bundle = Bundle(for: TestBundleAnchor.self)
+        let url = bundle.url(forResource: name, withExtension: "json")!
+        return try! Data(contentsOf: url)
+    }
+}</code></pre>
+    </div>
+  </details>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 3</span>
+      <span class="step-title">Write decoding tests</span>
+    </div>
+    <p>Create <code>ModelDecodingTests</code> that:</p>
+    <ul>
+      <li>Decode <code>photos_page1.json</code> into <code>[UnsplashPhoto]</code> — verify count, first photo's ID, URLs, user name</li>
+      <li>Decode <code>photo_detail.json</code> into <code>UnsplashPhoto</code> — verify all fields including exif when present</li>
+      <li>Test a photo with nil description and nil exif — verify they decode as nil without error</li>
+    </ul>
+  </div>
+
+  <h2>Success Criteria</h2>
+  <table class="rubric">
+    <thead><tr><th>Level</th><th>Criteria</th></tr></thead>
+    <tbody>
+      <tr><td class="label-min">Minimal</td><td>Models decode from JSON fixtures without errors. All required fields mapped.</td></tr>
+      <tr><td class="label-ext">Extended</td><td>Optional fields (description, exif, location) verified. Nested URL and user objects tested. CodingKeys handle all snake_case fields.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Tests</h2>
+  <p><span class="tag tag-test">ModelDecodingTests</span></p>
+
+  <h2>Commit</h2>
+  <div class="commit-msg">feat: add Unsplash data models with JSON fixture tests</div>
+
+  <div class="solution-links">
+    <h3>Solution</h3>
+    <p class="no-repo">Configure your GitHub repo URL in the settings bar to enable solution links.</p>
+    <ul>
+      <li><a data-branch="e03" target="_blank">Browse full solution</a></li>
+      <li><a data-diff="e02..e03" target="_blank">View diff from E2</a></li>
+      <li><a data-branch="e03" data-path="PinBoard/Core/Models/UnsplashPhoto.swift" target="_blank">UnsplashPhoto.swift</a></li>
+      <li><a data-branch="e03" data-path="PinBoard/Core/Models/UnsplashUser.swift" target="_blank">UnsplashUser.swift</a></li>
+      <li><a data-branch="e03" data-path="PinBoardTests/Mocks/Fixtures.swift" target="_blank">Fixtures.swift</a></li>
+      <li><a data-branch="e03" data-path="PinBoardTests/Core/ModelDecodingTests.swift" target="_blank">ModelDecodingTests.swift</a></li>
+    </ul>
+  </div>
+
+</div>
+
+<script src="shared.js"></script>
+</body>
+</html>

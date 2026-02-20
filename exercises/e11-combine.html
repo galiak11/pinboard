@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E11: Combine Bindings — PinBoard Course</title>
+  <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<div class="settings-bar">
+  <label>GitHub Repo:</label>
+  <input type="text" placeholder="owner/repo or full URL">
+  <span class="status error">Enter your repo</span>
+</div>
+
+<nav class="nav-bar">
+  <div class="nav-group">
+    <a href="index.html">← Overview</a>
+    <a href="e10-tab-bar.html">← E10: Tab Bar</a>
+  </div>
+  <span class="nav-title">E11 of 14</span>
+  <div class="nav-group">
+    <a href="e12-state-errors.html">E12: State & Errors →</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <h1>E11: Combine Bindings</h1>
+  <p class="subtitle">
+    <span class="tag tag-topic">@Published</span>
+    <span class="tag tag-topic">sink</span>
+    <span class="tag tag-topic">AnyCancellable</span>
+    <span class="tag tag-topic">Reactive Bindings</span>
+    <span class="tag tag-prereq">Requires E5, E9</span>
+  </p>
+
+  <h2>Problem</h2>
+  <p>ViewModels communicate with ViewControllers via closure callbacks (<code>onStateChanged</code>, <code>onPhotosUpdated</code>). This works but requires manual wiring and doesn't compose well. Replace all closure-based bindings with Combine's <code>@Published</code> properties and subscriber-based bindings. This is a refactoring exercise — external behavior must stay identical.</p>
+
+  <h2>What the Solution Looks Like</h2>
+  <p>ViewModels expose <code>@Published private(set)</code> properties. ViewControllers subscribe with <code>$property.receive(on: DispatchQueue.main).sink {}</code> and store cancellables in a <code>Set&lt;AnyCancellable&gt;</code>. All closure properties and their invocations are removed.</p>
+
+  <h2>Steps</h2>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 1</span>
+      <span class="step-title">Refactor HomeFeedViewModel</span>
+    </div>
+    <p>Add <code>import Combine</code>. Replace:</p>
+    <ul>
+      <li><code>var onStateChanged: ((FeedState) -> Void)?</code> → <code>@Published private(set) var state: FeedState = .idle</code></li>
+      <li><code>var onPhotosUpdated: (([PhotoCellViewModel]) -> Void)?</code> → <code>@Published private(set) var cellViewModels: [PhotoCellViewModel] = []</code></li>
+    </ul>
+    <p>Remove all closure invocations — just assign to the properties directly. The <code>@Published</code> wrapper automatically notifies subscribers.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 2</span>
+      <span class="step-title">Update HomeFeedViewController bindings</span>
+    </div>
+    <p>Add <code>import Combine</code> and <code>private var cancellables = Set&lt;AnyCancellable&gt;()</code>. Replace closure assignments with:</p>
+<pre><code>viewModel.$cellViewModels
+    .dropFirst()  // skip initial empty value
+    .receive(on: DispatchQueue.main)
+    .sink { [weak self] viewModels in
+        self?.applySnapshot(with: viewModels)
+    }
+    .store(in: &amp;cancellables)
+
+viewModel.$state
+    .receive(on: DispatchQueue.main)
+    .sink { [weak self] state in
+        self?.handleStateChange(state)
+    }
+    .store(in: &amp;cancellables)</code></pre>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 3</span>
+      <span class="step-title">Refactor PinDetailViewModel</span>
+    </div>
+    <p>Same pattern: replace <code>onStateChanged</code> closure with <code>@Published</code> on the state and all output properties (<code>imageURL</code>, <code>titleText</code>, <code>authorName</code>, etc.).</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 4</span>
+      <span class="step-title">Update PinDetailViewController bindings</span>
+    </div>
+    <p>Subscribe to <code>$state</code> with a Combine sink. Update UI in the subscriber. Store cancellables.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 5</span>
+      <span class="step-title">Update ViewModel tests</span>
+    </div>
+    <p>Replace closure-based assertions with Combine subscriptions:</p>
+<pre><code>var states: [FeedState] = []
+sut.$state.sink { states.append($0) }.store(in: &amp;cancellables)
+sut.viewDidLoad()
+try await Task.sleep(for: .milliseconds(200))
+// assert on collected states</code></pre>
+    <p>Verify all existing test cases still pass with the new binding mechanism.</p>
+  </div>
+
+  <details>
+    <summary>Hint: Why dropFirst()?</summary>
+    <div class="hint-body">
+      <p><code>@Published</code> emits the current value immediately upon subscription. If your VC subscribes in <code>viewDidLoad()</code>, it'll get the initial <code>.idle</code> state or empty array right away. Use <code>.dropFirst()</code> when you only want to react to <strong>changes</strong> after the initial value.</p>
+      <p>For state, you might <strong>not</strong> want to drop first (to handle initial state). For cell view models, you usually <strong>do</strong> want to drop first (to avoid an empty snapshot apply).</p>
+    </div>
+  </details>
+
+  <h2>Success Criteria</h2>
+  <table class="rubric">
+    <thead><tr><th>Level</th><th>Criteria</th></tr></thead>
+    <tbody>
+      <tr><td class="label-min">Minimal</td><td>All closure properties replaced with @Published + sink. All tests pass. No behavior change.</td></tr>
+      <tr><td class="label-ext">Extended</td><td>Clean cancellable management (stored in Set, not leaked). Appropriate use of dropFirst(). receive(on: .main) for UI updates.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Tests</h2>
+  <p><span class="tag tag-test">HomeFeedViewModelTests</span> (updated) <span class="tag tag-test">PinDetailViewModelTests</span> (updated)</p>
+
+  <h2>Commit</h2>
+  <div class="commit-msg">refactor: replace closure callbacks with Combine bindings</div>
+
+  <div class="solution-links">
+    <h3>Solution</h3>
+    <p class="no-repo">Configure your GitHub repo URL in the settings bar to enable solution links.</p>
+    <ul>
+      <li><a data-branch="e11" target="_blank">Browse full solution</a></li>
+      <li><a data-diff="e10..e11" target="_blank">View diff from E10</a></li>
+      <li><a data-branch="e11" data-path="PinBoard/Features/HomeFeed/HomeFeedViewModel.swift" target="_blank">HomeFeedViewModel.swift</a></li>
+      <li><a data-branch="e11" data-path="PinBoard/Features/HomeFeed/HomeFeedViewController.swift" target="_blank">HomeFeedViewController.swift</a></li>
+      <li><a data-branch="e11" data-path="PinBoard/Features/PinDetail/PinDetailViewModel.swift" target="_blank">PinDetailViewModel.swift</a></li>
+      <li><a data-branch="e11" data-path="PinBoard/Features/PinDetail/PinDetailViewController.swift" target="_blank">PinDetailViewController.swift</a></li>
+      <li><a data-branch="e11" data-path="PinBoardTests/Features/HomeFeed/HomeFeedViewModelTests.swift" target="_blank">HomeFeedViewModelTests.swift</a></li>
+      <li><a data-branch="e11" data-path="PinBoardTests/Features/PinDetail/PinDetailViewModelTests.swift" target="_blank">PinDetailViewModelTests.swift</a></li>
+    </ul>
+  </div>
+
+</div>
+
+<script src="shared.js"></script>
+</body>
+</html>

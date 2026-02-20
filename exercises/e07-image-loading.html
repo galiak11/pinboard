@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E7: Image Loading & Caching — PinBoard Course</title>
+  <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<div class="settings-bar">
+  <label>GitHub Repo:</label>
+  <input type="text" placeholder="owner/repo or full URL">
+  <span class="status error">Enter your repo</span>
+</div>
+
+<nav class="nav-bar">
+  <div class="nav-group">
+    <a href="index.html">← Overview</a>
+    <a href="e06-feed-ui.html">← E6: Feed UI</a>
+  </div>
+  <span class="nav-title">E7 of 14</span>
+  <div class="nav-group">
+    <a href="e08-pagination.html">E8: Pagination →</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <h1>E7: Image Loading &amp; Caching</h1>
+  <p class="subtitle">
+    <span class="tag tag-topic">SPM</span>
+    <span class="tag tag-topic">Nuke</span>
+    <span class="tag tag-topic">Prefetching</span>
+    <span class="tag tag-topic">Caching Protocol</span>
+    <span class="tag tag-prereq">Requires E6</span>
+  </p>
+
+  <h2>Problem</h2>
+  <p>The feed shows colored placeholders instead of real photos. Integrate the Nuke image loading library to download and display images efficiently, add prefetching so images load before cells scroll into view, and create a caching protocol that abstracts Nuke's implementation.</p>
+
+  <h2>What the Solution Looks Like</h2>
+  <p>Nuke added as an SPM dependency. <code>PhotoCell</code> loads images via <code>NukeExtensions.loadImage(with:into:)</code> with automatic cancellation on reuse. <code>HomeFeedViewController</code> implements <code>UICollectionViewDataSourcePrefetching</code> with Nuke's <code>ImagePrefetcher</code>. An <code>ImageCaching</code> protocol wrapping Nuke's pipeline cache, registered on the DI container.</p>
+
+  <h2>Steps</h2>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 1</span>
+      <span class="step-title">Add Nuke as SPM dependency</span>
+    </div>
+    <p>Update <code>project.yml</code> to add Nuke as a Swift Package dependency:</p>
+<pre><code>packages:
+  Nuke:
+    url: https://github.com/kean/Nuke
+    from: "12.0.0"
+
+# In the PinBoard target:
+dependencies:
+  - package: Nuke
+    product: Nuke
+  - package: Nuke
+    product: NukeExtensions
+  - package: Nuke
+    product: NukeUI</code></pre>
+    <p>Run <code>xcodegen generate</code>, open the project, and verify <code>import Nuke</code> compiles.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 2</span>
+      <span class="step-title">Load images in PhotoCell</span>
+    </div>
+    <p>In <code>PhotoCell.configure(with:)</code>, replace the placeholder background color with real image loading:</p>
+<pre><code>import NukeExtensions
+
+NukeExtensions.loadImage(with: viewModel.imageURL, into: imageView)</code></pre>
+    <p>This automatically cancels the previous request when the cell is reused. Set <code>imageView.contentMode = .scaleAspectFill</code> and <code>clipsToBounds = true</code>.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 3</span>
+      <span class="step-title">Add prefetching</span>
+    </div>
+    <p>Make <code>HomeFeedViewController</code> conform to <code>UICollectionViewDataSourcePrefetching</code>. Create a <code>lazy var prefetcher = ImagePrefetcher()</code>. Map index paths to image URLs and call <code>prefetcher.startPrefetching(with:)</code> / <code>stopPrefetching(with:)</code>. Set <code>collectionView.prefetchDataSource = self</code>.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 4</span>
+      <span class="step-title">Create ImageCaching protocol</span>
+    </div>
+    <p>Define a protocol to abstract image caching away from Nuke's API:</p>
+<pre><code>protocol ImageCaching {
+    func cachedImage(for url: URL) -> UIImage?
+    func store(_ image: UIImage, for url: URL)
+    func removeAll()
+}</code></pre>
+    <p>Implement <code>NukeImageCache</code> wrapping <code>ImagePipeline.cache</code>. Add <code>imageCache: ImageCaching</code> to <code>AppDependencyContainer</code>.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 5</span>
+      <span class="step-title">Write tests</span>
+    </div>
+    <p><code>ImageCachingTests</code>: store an image and retrieve it, call <code>removeAll()</code> and verify cache is empty, verify a cache miss returns nil.</p>
+  </div>
+
+  <h2>Success Criteria</h2>
+  <table class="rubric">
+    <thead><tr><th>Level</th><th>Criteria</th></tr></thead>
+    <tbody>
+      <tr><td class="label-min">Minimal</td><td>Real photos load and display in the waterfall grid. Caching tests pass.</td></tr>
+      <tr><td class="label-ext">Extended</td><td>Prefetching works (smooth scrolling experience). Cache protocol tested. Images cancel on cell reuse.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Tests</h2>
+  <p><span class="tag tag-test">ImageCachingTests</span></p>
+
+  <h2>Commit</h2>
+  <div class="commit-msg">feat: integrate Nuke for image loading with caching protocol</div>
+
+  <div class="solution-links">
+    <h3>Solution</h3>
+    <p class="no-repo">Configure your GitHub repo URL in the settings bar to enable solution links.</p>
+    <ul>
+      <li><a data-branch="e07" target="_blank">Browse full solution</a></li>
+      <li><a data-diff="e06..e07" target="_blank">View diff from E6</a></li>
+      <li><a data-branch="e07" data-path="project.yml" target="_blank">project.yml (Nuke dependency)</a></li>
+      <li><a data-branch="e07" data-path="PinBoard/Features/HomeFeed/PhotoCell.swift" target="_blank">PhotoCell.swift</a></li>
+      <li><a data-branch="e07" data-path="PinBoard/Features/HomeFeed/HomeFeedViewController.swift" target="_blank">HomeFeedViewController.swift (prefetching)</a></li>
+      <li><a data-branch="e07" data-path="PinBoard/Core/ImageCaching.swift" target="_blank">ImageCaching.swift</a></li>
+      <li><a data-branch="e07" data-path="PinBoardTests/Core/ImageCachingTests.swift" target="_blank">ImageCachingTests.swift</a></li>
+    </ul>
+  </div>
+
+</div>
+
+<script src="shared.js"></script>
+</body>
+</html>

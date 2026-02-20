@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E12: State & Error Handling — PinBoard Course</title>
+  <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<div class="settings-bar">
+  <label>GitHub Repo:</label>
+  <input type="text" placeholder="owner/repo or full URL">
+  <span class="status error">Enter your repo</span>
+</div>
+
+<nav class="nav-bar">
+  <div class="nav-group">
+    <a href="index.html">← Overview</a>
+    <a href="e11-combine.html">← E11: Combine</a>
+  </div>
+  <span class="nav-title">E12 of 14</span>
+  <div class="nav-group">
+    <a href="e13-deep-linking.html">E13: Deep Linking →</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <h1>E12: State &amp; Error Handling</h1>
+  <p class="subtitle">
+    <span class="tag tag-topic">Empty States</span>
+    <span class="tag tag-topic">Inline Errors</span>
+    <span class="tag tag-topic">Reusable Components</span>
+    <span class="tag tag-topic">Cell Placeholders</span>
+    <span class="tag tag-prereq">Requires E6, E9, E11</span>
+  </p>
+
+  <h2>Problem</h2>
+  <p>The app has no visual feedback for empty results or errors. Network failures produce no UI response. Build a reusable overlay view for empty/error states, add context-aware error handling (full-screen when no data, subtle when data exists), and handle image loading failures in cells with a placeholder.</p>
+
+  <h2>What the Solution Looks Like</h2>
+  <p>A <code>StateOverlayView</code> with configurable styles (empty, error) including icon, message, and retry button. The home feed shows an empty state when the API returns no photos. Errors show as full-screen overlays when there's no data, or preserve existing content when data already loaded. <code>PhotoCell</code> shows a system image placeholder on image load failure.</p>
+
+  <h2>Steps</h2>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 1</span>
+      <span class="step-title">Create StateOverlayView</span>
+    </div>
+    <p>A reusable <code>UIView</code> subclass with:</p>
+    <ul>
+      <li>A large SF Symbol icon (<code>UIImageView</code>)</li>
+      <li>A title label (heading font)</li>
+      <li>A message label (body font, multiline)</li>
+      <li>A "Retry" button (visible only for error style)</li>
+      <li><code>var onRetry: (() -> Void)?</code> closure</li>
+    </ul>
+    <p>Configurable via <code>enum Style</code>:</p>
+    <ul>
+      <li><code>.empty(message: String)</code> — shows <code>photo.on.rectangle</code> icon, "No Results" title, custom message, no retry button</li>
+      <li><code>.error(message: String)</code> — shows <code>exclamationmark.triangle</code> icon, "Something Went Wrong" title, custom message, retry button</li>
+    </ul>
+    <p>Center the content vertically and horizontally with auto-layout.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 2</span>
+      <span class="step-title">Add empty state to Home Feed</span>
+    </div>
+    <p>When the state is <code>.loaded(hasMore: false)</code> and <code>cellViewModels</code> is empty, add a <code>StateOverlayView</code> with <code>.empty(message: "No photos found")</code> over the collection view. Hide it when data arrives.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 3</span>
+      <span class="step-title">Add inline errors to Home Feed</span>
+    </div>
+    <p>Context-aware error handling:</p>
+    <ul>
+      <li><strong>No data + error</strong>: show full-screen <code>StateOverlayView</code> with <code>.error</code> style. Wire retry to <code>viewModel.viewDidLoad()</code>.</li>
+      <li><strong>Data exists + error</strong>: keep existing data visible. The user can still browse what's loaded. Optionally log the error or update the footer.</li>
+    </ul>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 4</span>
+      <span class="step-title">Add error state to Pin Detail</span>
+    </div>
+    <p>Replace any alert-based error with an inline <code>StateOverlayView</code> in <code>PinDetailViewController</code>. Wire retry to <code>viewModel.viewDidLoad()</code>.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 5</span>
+      <span class="step-title">Cell failure placeholder</span>
+    </div>
+    <p>In <code>PhotoCell.configure()</code>, handle the Nuke image load failure callback. On failure, show <code>UIImage(systemName: "photo")</code> with <code>.scaleAspectFit</code> content mode and a muted tint color. Reset the placeholder in <code>prepareForReuse()</code>.</p>
+  </div>
+
+  <details>
+    <summary>Hint: Nuke failure handling</summary>
+    <div class="hint-body">
+<pre><code>NukeExtensions.loadImage(with: url, into: imageView) { [weak self] result in
+    if case .failure = result {
+        self?.imageView.contentMode = .scaleAspectFit
+        self?.imageView.tintColor = AppColors.onSurfaceSecondary
+        self?.imageView.image = UIImage(systemName: "photo")
+    }
+}</code></pre>
+    </div>
+  </details>
+
+  <h2>Success Criteria</h2>
+  <table class="rubric">
+    <thead><tr><th>Level</th><th>Criteria</th></tr></thead>
+    <tbody>
+      <tr><td class="label-min">Minimal</td><td>Empty state visible when API returns no results. Error overlay shows on failure with working retry button.</td></tr>
+      <tr><td class="label-ext">Extended</td><td>Cell placeholder on image failure. Context-aware error: full-screen when empty, preserves data when loaded. Pin detail uses inline error instead of alert.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Tests</h2>
+  <p>Visual verification — <code>StateOverlayView</code> is a pure UI component. Test by temporarily returning empty data or triggering network errors.</p>
+
+  <h2>Commit</h2>
+  <div class="commit-msg">feat: add empty state, inline errors, and cell failure placeholder</div>
+
+  <div class="solution-links">
+    <h3>Solution</h3>
+    <p class="no-repo">Configure your GitHub repo URL in the settings bar to enable solution links.</p>
+    <ul>
+      <li><a data-branch="e12" target="_blank">Browse full solution</a></li>
+      <li><a data-diff="e11..e12" target="_blank">View diff from E11</a></li>
+      <li><a data-branch="e12" data-path="PinBoard/DesignSystem/StateOverlayView.swift" target="_blank">StateOverlayView.swift</a></li>
+      <li><a data-branch="e12" data-path="PinBoard/Features/HomeFeed/HomeFeedViewController.swift" target="_blank">HomeFeedViewController.swift (empty/error states)</a></li>
+      <li><a data-branch="e12" data-path="PinBoard/Features/PinDetail/PinDetailViewController.swift" target="_blank">PinDetailViewController.swift (inline error)</a></li>
+      <li><a data-branch="e12" data-path="PinBoard/Features/HomeFeed/PhotoCell.swift" target="_blank">PhotoCell.swift (failure placeholder)</a></li>
+    </ul>
+  </div>
+
+</div>
+
+<script src="shared.js"></script>
+</body>
+</html>

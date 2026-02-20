@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E4: Coordinator Pattern & DI Container — PinBoard Course</title>
+  <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<div class="settings-bar">
+  <label>GitHub Repo:</label>
+  <input type="text" placeholder="owner/repo or full URL">
+  <span class="status error">Enter your repo</span>
+</div>
+
+<nav class="nav-bar">
+  <div class="nav-group">
+    <a href="index.html">← Overview</a>
+    <a href="e03-models.html">← E3: Models</a>
+  </div>
+  <span class="nav-title">E4 of 14</span>
+  <div class="nav-group">
+    <a href="e05-feed-viewmodel.html">E5: Feed ViewModel →</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <h1>E4: Coordinator Pattern &amp; DI Container</h1>
+  <p class="subtitle">
+    <span class="tag tag-topic">Coordinator Protocol</span>
+    <span class="tag tag-topic">Child Management</span>
+    <span class="tag tag-topic">Dependency Injection</span>
+    <span class="tag tag-topic">Composition Root</span>
+    <span class="tag tag-prereq">Requires E1</span>
+  </p>
+
+  <h2>Problem</h2>
+  <p>View controllers shouldn't know how to navigate — that creates tight coupling and makes testing difficult. Implement the Coordinator pattern to centralize navigation logic outside of VCs. Also create a root dependency injection container (composition root) that owns shared services and provides them to the rest of the app.</p>
+
+  <h2>What the Solution Looks Like</h2>
+  <p>A <code>Coordinator</code> protocol with <code>start()</code>, <code>childCoordinators</code>, and helper methods. An <code>AppDependencyContainer</code> that creates the <code>APIClient</code> and will later provide feature-level services. An <code>AppCoordinator</code> that owns the window, sets the root VC, and manages child coordinators. The <code>SceneDelegate</code> creates the container and coordinator.</p>
+
+  <h2>Steps</h2>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 1</span>
+      <span class="step-title">Define the Coordinator protocol</span>
+    </div>
+    <p>Create <code>Coordinator</code> protocol with:</p>
+    <ul>
+      <li><code>var navigationController: UINavigationController { get }</code></li>
+      <li><code>var childCoordinators: [Coordinator] { get set }</code></li>
+      <li><code>func start()</code></li>
+    </ul>
+    <p>Add extension methods: <code>addChild(_:)</code> appends to the array, <code>removeChild(_:)</code> removes by identity (<code>===</code>). Use <code>AnyObject</code> constraint so coordinators are reference types.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 2</span>
+      <span class="step-title">Create AppDependencyContainer</span>
+    </div>
+    <p>The composition root. Creates and owns the <code>APIClient</code> using <code>Secrets.unsplashAccessKey</code> and the Unsplash base URL. For now it just has <code>apiClient: APIClientProtocol</code> — feature services will be added in later exercises.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 3</span>
+      <span class="step-title">Create AppCoordinator</span>
+    </div>
+    <p>Takes a <code>UIWindow</code>, <code>UINavigationController</code>, and <code>AppDependencyContainer</code>. <code>start()</code> sets the window's <code>rootViewController</code> to the nav controller and calls <code>window.makeKeyAndVisible()</code>. For now, it just shows an empty nav — feature coordinators come in E6.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 4</span>
+      <span class="step-title">Wire SceneDelegate</span>
+    </div>
+    <p>Update <code>SceneDelegate</code> to create the container and coordinator:</p>
+<pre><code>let container = AppDependencyContainer()
+let navController = UINavigationController()
+let coordinator = AppCoordinator(window: window, navigationController: navController, container: container)
+coordinator.start()</code></pre>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 5</span>
+      <span class="step-title">Write tests</span>
+    </div>
+    <p><code>AppCoordinatorTests</code>: verify that <code>start()</code> sets the window's root view controller, and that a child coordinator slot exists (empty at first).</p>
+  </div>
+
+  <h2>Success Criteria</h2>
+  <table class="rubric">
+    <thead><tr><th>Level</th><th>Criteria</th></tr></thead>
+    <tbody>
+      <tr><td class="label-min">Minimal</td><td>App launches via coordinator → container → SceneDelegate chain. Coordinator tests pass.</td></tr>
+      <tr><td class="label-ext">Extended</td><td>addChild/removeChild work correctly with identity-based comparison. Container initializes APIClient with real credentials.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Tests</h2>
+  <p><span class="tag tag-test">AppCoordinatorTests</span></p>
+
+  <h2>Commit</h2>
+  <div class="commit-msg">feat: add coordinator pattern and DI container</div>
+
+  <div class="solution-links">
+    <h3>Solution</h3>
+    <p class="no-repo">Configure your GitHub repo URL in the settings bar to enable solution links.</p>
+    <ul>
+      <li><a data-branch="e04" target="_blank">Browse full solution</a></li>
+      <li><a data-diff="e03..e04" target="_blank">View diff from E3</a></li>
+      <li><a data-branch="e04" data-path="PinBoard/App/Coordinators/Coordinator.swift" target="_blank">Coordinator.swift</a></li>
+      <li><a data-branch="e04" data-path="PinBoard/App/Coordinators/AppCoordinator.swift" target="_blank">AppCoordinator.swift</a></li>
+      <li><a data-branch="e04" data-path="PinBoard/App/AppDependencyContainer.swift" target="_blank">AppDependencyContainer.swift</a></li>
+      <li><a data-branch="e04" data-path="PinBoard/App/SceneDelegate.swift" target="_blank">SceneDelegate.swift</a></li>
+      <li><a data-branch="e04" data-path="PinBoardTests/App/AppCoordinatorTests.swift" target="_blank">AppCoordinatorTests.swift</a></li>
+    </ul>
+  </div>
+
+</div>
+
+<script src="shared.js"></script>
+</body>
+</html>

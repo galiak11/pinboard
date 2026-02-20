@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PinBoard — iOS Architecture Course</title>
+  <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<div class="settings-bar">
+  <label>GitHub Repo:</label>
+  <input type="text" placeholder="owner/repo or full URL">
+  <span class="status error">Enter your repo</span>
+</div>
+
+<div class="container">
+
+  <h1>PinBoard — iOS Architecture Course</h1>
+  <p class="subtitle">Build a photo feed app from scratch. 14 exercises, bottom-up build order, real Unsplash API.</p>
+
+  <h2>Exercises</h2>
+  <ul class="exercise-list">
+    <li class="exercise-item">
+      <div class="check" data-exercise="e01"></div>
+      <span class="number">E1</span>
+      <a href="e01-scaffold.html">Project Scaffold &amp; Design System</a>
+      <span class="topic">XcodeGen, Lifecycle, Assets</span>
+    </li>
+    <li class="exercise-item">
+      <div class="check" data-exercise="e02"></div>
+      <span class="number">E2</span>
+      <a href="e02-networking.html">Networking Layer</a>
+      <span class="topic">Protocols, URLSession, async/await</span>
+    </li>
+    <li class="exercise-item">
+      <div class="check" data-exercise="e03"></div>
+      <span class="number">E3</span>
+      <a href="e03-models.html">Data Models &amp; JSON Fixtures</a>
+      <span class="topic">Codable, CodingKeys, Fixtures</span>
+    </li>
+    <li class="exercise-item">
+      <div class="check" data-exercise="e04"></div>
+      <span class="number">E4</span>
+      <a href="e04-coordinators.html">Coordinator Pattern &amp; DI Container</a>
+      <span class="topic">Navigation, Composition Root</span>
+    </li>
+    <li class="exercise-item">
+      <div class="check" data-exercise="e05"></div>
+      <span class="number">E5</span>
+      <a href="e05-feed-viewmodel.html">Home Feed Service &amp; ViewModel</a>
+      <span class="topic">MVVM, State Machine, Mocking</span>
+    </li>
+    <li class="exercise-item">
+      <div class="check" data-exercise="e06"></div>
+      <span class="number">E6</span>
+      <a href="e06-feed-ui.html">Home Feed UI</a>
+      <span class="topic">CompositionalLayout, DiffableDataSource</span>
+    </li>
+    <li class="exercise-item">
+      <div class="check" data-exercise="e07"></div>
+      <span class="number">E7</span>
+      <a href="e07-image-loading.html">Image Loading &amp; Caching</a>
+      <span class="topic">Nuke, Prefetching, Caching Protocol</span>
+    </li>
+    <li class="exercise-item">
+      <div class="check" data-exercise="e08"></div>
+      <span class="number">E8</span>
+      <a href="e08-pagination.html">Pagination</a>
+      <span class="topic">Infinite Scroll, Pull-to-Refresh</span>
+    </li>
+    <li class="exercise-item">
+      <div class="check" data-exercise="e09"></div>
+      <span class="number">E9</span>
+      <a href="e09-pin-detail.html">Pin Detail (Full Vertical Slice)</a>
+      <span class="topic">Feature Composition</span>
+    </li>
+    <li class="exercise-item">
+      <div class="check" data-exercise="e10"></div>
+      <span class="number">E10</span>
+      <a href="e10-tab-bar.html">Tab Bar Navigation</a>
+      <span class="topic">UITabBarController, Coordinator Hierarchy</span>
+    </li>
+    <li class="exercise-item">
+      <div class="check" data-exercise="e11"></div>
+      <span class="number">E11</span>
+      <a href="e11-combine.html">Combine Bindings</a>
+      <span class="topic">@Published, sink, AnyCancellable</span>
+    </li>
+    <li class="exercise-item">
+      <div class="check" data-exercise="e12"></div>
+      <span class="number">E12</span>
+      <a href="e12-state-errors.html">State &amp; Error Handling</a>
+      <span class="topic">Empty States, Inline Errors</span>
+    </li>
+    <li class="exercise-item">
+      <div class="check" data-exercise="e13"></div>
+      <span class="number">E13</span>
+      <a href="e13-deep-linking.html">Deep Linking &amp; Scoped DI</a>
+      <span class="topic">URL Routing, Scoped Containers</span>
+    </li>
+    <li class="exercise-item">
+      <div class="check" data-exercise="e14"></div>
+      <span class="number">E14</span>
+      <a href="e14-swift-testing.html">Swift Testing Migration</a>
+      <span class="topic">@Suite, @Test, #expect</span>
+    </li>
+  </ul>
+
+  <h2>Topics Map</h2>
+  <table class="topic-map">
+    <thead>
+      <tr><th>#</th><th>Topic</th><th>Exercise</th><th>Key Concepts</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>E1</td><td>Project Setup &amp; Build Tools</td><td>Scaffold &amp; Design System</td><td>XcodeGen, UIKit lifecycle, asset catalogs, semantic tokens</td></tr>
+      <tr><td>E2</td><td>Protocol-Oriented Networking</td><td>Networking Layer</td><td>Protocol design, URLSession, async/await, generics, error types</td></tr>
+      <tr><td>E3</td><td>Data Modeling</td><td>Models &amp; Fixtures</td><td>Codable, CodingKeys, nested decoding, test fixtures</td></tr>
+      <tr><td>E4</td><td>Navigation Architecture</td><td>Coordinators &amp; DI</td><td>Coordinator protocol, child management, composition root</td></tr>
+      <tr><td>E5</td><td>MVVM &amp; State Machines</td><td>Feed Service &amp; ViewModel</td><td>Service layer, FeedState enum, ViewModel outputs, mocking</td></tr>
+      <tr><td>E6</td><td>Collection Views</td><td>Feed UI</td><td>CompositionalLayout, DiffableDataSource, custom cells, delegation</td></tr>
+      <tr><td>E7</td><td>Image Loading</td><td>Nuke &amp; Caching</td><td>SPM, Nuke, prefetching, caching protocol</td></tr>
+      <tr><td>E8</td><td>Pagination</td><td>Infinite Scroll</td><td>State machine extensions, loading indicators, scroll detection</td></tr>
+      <tr><td>E9</td><td>Feature Composition</td><td>Pin Detail</td><td>Full vertical slice applying all prior patterns</td></tr>
+      <tr><td>E10</td><td>Tab Navigation</td><td>Tab Bar</td><td>UITabBarController, multi-coordinator wiring</td></tr>
+      <tr><td>E11</td><td>Reactive Bindings</td><td>Combine</td><td>@Published, sink, AnyCancellable, replacing closures</td></tr>
+      <tr><td>E12</td><td>UX Polish</td><td>State &amp; Errors</td><td>Empty states, inline errors, cell placeholders</td></tr>
+      <tr><td>E13</td><td>Deep Linking</td><td>URL Routing &amp; Scoped DI</td><td>URL schemes, route parsing, scoped containers</td></tr>
+      <tr><td>E14</td><td>Testing Modernization</td><td>Swift Testing</td><td>@Suite, @Test, #expect, XCTest coexistence</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Workflow</h2>
+  <ol>
+    <li>Read the exercise page</li>
+    <li>Think about how you'd approach the problem before reading the steps</li>
+    <li>Implement each step — every step leaves the project buildable</li>
+    <li>Run tests: <code>xcodegen generate &amp;&amp; xcodebuild test -scheme PinBoard -destination 'platform=iOS Simulator,name=iPhone 16'</code></li>
+    <li>Commit and push with the suggested commit message</li>
+    <li>Click the checkbox to mark the exercise complete</li>
+  </ol>
+
+</div>
+
+<script src="shared.js"></script>
+</body>
+</html>

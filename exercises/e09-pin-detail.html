@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E9: Pin Detail (Full Vertical Slice) — PinBoard Course</title>
+  <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<div class="settings-bar">
+  <label>GitHub Repo:</label>
+  <input type="text" placeholder="owner/repo or full URL">
+  <span class="status error">Enter your repo</span>
+</div>
+
+<nav class="nav-bar">
+  <div class="nav-group">
+    <a href="index.html">← Overview</a>
+    <a href="e08-pagination.html">← E8: Pagination</a>
+  </div>
+  <span class="nav-title">E9 of 14</span>
+  <div class="nav-group">
+    <a href="e10-tab-bar.html">E10: Tab Bar →</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <h1>E9: Pin Detail (Full Vertical Slice)</h1>
+  <p class="subtitle">
+    <span class="tag tag-topic">Feature Composition</span>
+    <span class="tag tag-topic">Vertical Slice</span>
+    <span class="tag tag-topic">Coordinator Lifecycle</span>
+    <span class="tag tag-prereq">Requires E6, E7, E8</span>
+  </p>
+
+  <h2>Problem</h2>
+  <p>Tapping a photo in the feed should push a detail screen. Build this as a complete vertical slice — service, view model, view controller, coordinator — applying every pattern established in previous exercises. The detail screen shows the full-resolution image, description, author, likes, date, and EXIF data.</p>
+
+  <h2>What the Solution Looks Like</h2>
+  <p><code>PinDetailService</code> fetching <code>/photos/:id</code>. <code>PinDetailViewModel</code> with a <code>DetailState</code> enum. <code>PinDetailViewController</code> with a scroll view layout. <code>PinDetailCoordinator</code> created by the home feed coordinator on photo selection, with <code>onDismiss</code> cleanup.</p>
+
+  <h2>Steps</h2>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 1</span>
+      <span class="step-title">Create PinDetailService</span>
+    </div>
+    <p>Define <code>PinDetailServiceProtocol</code> with <code>func fetchPhoto(id: String) async throws -> UnsplashPhoto</code>. Implement <code>PinDetailService</code> calling the <code>.photo(id:)</code> endpoint. Register on the container (add a factory <code>makePinDetailService()</code> or a property).</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 2</span>
+      <span class="step-title">Create PinDetailViewModel</span>
+    </div>
+    <p><code>DetailState</code>: <code>.idle</code>, <code>.loading</code>, <code>.loaded</code>, <code>.error(String)</code>. Input: <code>viewDidLoad()</code>. Output properties (via closures):</p>
+    <ul>
+      <li><code>imageURL: URL?</code> — uses <code>urls.regular</code> for full-width display</li>
+      <li><code>titleText: String</code> — photo description or fallback</li>
+      <li><code>authorName: String</code>, <code>authorImageURL: URL?</code></li>
+      <li><code>likesText: String</code> — formatted count</li>
+      <li><code>dateText: String</code> — "Jan 15, 2025" or relative</li>
+      <li><code>exifText: String?</code> — "Canon EOS R5 · f/2.8 · 1/500s · ISO 400" (graceful with nil fields)</li>
+    </ul>
+  </div>
+
+  <details>
+    <summary>Hint: EXIF formatting with optional fields</summary>
+    <div class="hint-body">
+<pre><code>func formatExif(_ exif: UnsplashPhoto.Exif?) -> String? {
+    guard let exif = exif else { return nil }
+    let parts = [
+        exif.make.flatMap { m in exif.model.map { "\(m) \($0)" } ?? m },
+        exif.aperture.map { "f/\($0)" },
+        exif.exposureTime.map { "\($0)s" },
+        exif.iso.map { "ISO \($0)" }
+    ].compactMap { $0 }
+    return parts.isEmpty ? nil : parts.joined(separator: " · ")
+}</code></pre>
+    </div>
+  </details>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 3</span>
+      <span class="step-title">Create PinDetailViewController</span>
+    </div>
+    <p>A scroll view layout with:</p>
+    <ul>
+      <li>Full-width image view (height from aspect ratio)</li>
+      <li>Title label (heading font)</li>
+      <li>Description label (body font, optional)</li>
+      <li>Author row: small avatar image + name label</li>
+      <li>Metadata: likes, date, EXIF (caption font)</li>
+    </ul>
+    <p>Bind to ViewModel closures to update UI on state changes. Show a loading spinner during <code>.loading</code>.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 4</span>
+      <span class="step-title">Create PinDetailCoordinator</span>
+    </div>
+    <p>Takes navigation controller, photo ID, and container. Creates service, VM, VC. <code>start()</code> pushes the VC. Has <code>var onDismiss: (() -> Void)?</code> called in <code>deinit</code> — this lets the parent clean up its child coordinator reference.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 5</span>
+      <span class="step-title">Wire photo selection</span>
+    </div>
+    <p>In <code>HomeFeedCoordinator.homeFeedDidSelectPhoto(id:)</code>: create <code>PinDetailCoordinator</code>, add as child, set <code>onDismiss</code> to remove it from children, call <code>start()</code>.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 6</span>
+      <span class="step-title">Write tests</span>
+    </div>
+    <p>Create <code>MockPinDetailService</code>. Tests:</p>
+    <ul>
+      <li><code>PinDetailServiceTests</code>: correct endpoint, response mapping, error propagation</li>
+      <li><code>PinDetailViewModelTests</code>: state transitions, date formatting, EXIF with partial fields, nil description</li>
+      <li><code>PinDetailCoordinatorTests</code>: start pushes VC, deinit calls onDismiss</li>
+    </ul>
+  </div>
+
+  <h2>Success Criteria</h2>
+  <table class="rubric">
+    <thead><tr><th>Level</th><th>Criteria</th></tr></thead>
+    <tbody>
+      <tr><td class="label-min">Minimal</td><td>Tapping a photo pushes detail screen with image and metadata. Back button pops. All tests pass.</td></tr>
+      <tr><td class="label-ext">Extended</td><td>EXIF handles partial data gracefully. Date formatted. Coordinator cleanup on deinit (no retain cycles). Author avatar loads.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Tests</h2>
+  <p><span class="tag tag-test">PinDetailServiceTests</span> <span class="tag tag-test">PinDetailViewModelTests</span> <span class="tag tag-test">PinDetailCoordinatorTests</span></p>
+
+  <h2>Commit</h2>
+  <div class="commit-msg">feat: add pin detail screen with full vertical slice</div>
+
+  <div class="solution-links">
+    <h3>Solution</h3>
+    <p class="no-repo">Configure your GitHub repo URL in the settings bar to enable solution links.</p>
+    <ul>
+      <li><a data-branch="e09" target="_blank">Browse full solution</a></li>
+      <li><a data-diff="e08..e09" target="_blank">View diff from E8</a></li>
+      <li><a data-branch="e09" data-path="PinBoard/Features/PinDetail/PinDetailService.swift" target="_blank">PinDetailService.swift</a></li>
+      <li><a data-branch="e09" data-path="PinBoard/Features/PinDetail/PinDetailViewModel.swift" target="_blank">PinDetailViewModel.swift</a></li>
+      <li><a data-branch="e09" data-path="PinBoard/Features/PinDetail/PinDetailViewController.swift" target="_blank">PinDetailViewController.swift</a></li>
+      <li><a data-branch="e09" data-path="PinBoard/Features/PinDetail/PinDetailCoordinator.swift" target="_blank">PinDetailCoordinator.swift</a></li>
+      <li><a data-branch="e09" data-path="PinBoard/Features/HomeFeed/HomeFeedCoordinator.swift" target="_blank">HomeFeedCoordinator.swift (photo selection)</a></li>
+      <li><a data-branch="e09" data-path="PinBoardTests/Mocks/MockPinDetailService.swift" target="_blank">MockPinDetailService.swift</a></li>
+      <li><a data-branch="e09" data-path="PinBoardTests/Features/PinDetail/PinDetailViewModelTests.swift" target="_blank">PinDetailViewModelTests.swift</a></li>
+      <li><a data-branch="e09" data-path="PinBoardTests/Features/PinDetail/PinDetailCoordinatorTests.swift" target="_blank">PinDetailCoordinatorTests.swift</a></li>
+    </ul>
+  </div>
+
+</div>
+
+<script src="shared.js"></script>
+</body>
+</html>

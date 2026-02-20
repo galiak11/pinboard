@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E10: Tab Bar Navigation — PinBoard Course</title>
+  <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<div class="settings-bar">
+  <label>GitHub Repo:</label>
+  <input type="text" placeholder="owner/repo or full URL">
+  <span class="status error">Enter your repo</span>
+</div>
+
+<nav class="nav-bar">
+  <div class="nav-group">
+    <a href="index.html">← Overview</a>
+    <a href="e09-pin-detail.html">← E9: Pin Detail</a>
+  </div>
+  <span class="nav-title">E10 of 14</span>
+  <div class="nav-group">
+    <a href="e11-combine.html">E11: Combine →</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <h1>E10: Tab Bar Navigation</h1>
+  <p class="subtitle">
+    <span class="tag tag-topic">UITabBarController</span>
+    <span class="tag tag-topic">Coordinator Hierarchy</span>
+    <span class="tag tag-prereq">Requires E6, E9</span>
+  </p>
+
+  <h2>Problem</h2>
+  <p>The app launches directly into the home feed. Real apps use tab bars for top-level navigation. Create a <code>MainTabCoordinator</code> that manages a <code>UITabBarController</code> with a Home tab (the existing feed) and a Search tab (placeholder). Refactor AppCoordinator to delegate to the tab coordinator.</p>
+
+  <h2>What the Solution Looks Like</h2>
+  <p><code>MainTabCoordinator</code> creates a tab bar controller with two tabs. The first tab runs <code>HomeFeedCoordinator</code> in its own navigation controller. The second tab is a placeholder VC. <code>AppCoordinator</code> creates <code>MainTabCoordinator</code> instead of <code>HomeFeedCoordinator</code> directly.</p>
+
+  <h2>Steps</h2>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 1</span>
+      <span class="step-title">Create MainTabCoordinator</span>
+    </div>
+    <p>Creates a <code>UITabBarController</code> with two tabs:</p>
+    <ul>
+      <li><strong>Home</strong>: a new <code>UINavigationController</code> with <code>HomeFeedCoordinator</code>. Tab bar item: "Home" with <code>house</code> SF Symbol.</li>
+      <li><strong>Search</strong>: a placeholder <code>UIViewController</code> with a "Coming soon" label. Tab bar item: "Search" with <code>magnifyingglass</code> SF Symbol.</li>
+    </ul>
+    <p>Store a reference to <code>homeFeedCoordinator</code> for later use (deep linking in E13).</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 2</span>
+      <span class="step-title">Refactor AppCoordinator</span>
+    </div>
+    <p>Instead of creating <code>HomeFeedCoordinator</code> directly, create <code>MainTabCoordinator</code> as a child. Push the tab bar controller onto the window's navigation controller (or set it directly as root). Store a reference to the <code>MainTabCoordinator</code>.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 3</span>
+      <span class="step-title">Write tests</span>
+    </div>
+    <p><code>MainTabCoordinatorTests</code>:</p>
+    <ul>
+      <li><code>start()</code> creates a tab bar controller with 2 tabs</li>
+      <li>First tab contains a <code>HomeFeedViewController</code></li>
+      <li><code>HomeFeedCoordinator</code> is added as a child coordinator</li>
+    </ul>
+  </div>
+
+  <h2>Success Criteria</h2>
+  <table class="rubric">
+    <thead><tr><th>Level</th><th>Criteria</th></tr></thead>
+    <tbody>
+      <tr><td class="label-min">Minimal</td><td>App shows tab bar with Home and Search tabs. Home tab shows the feed. Tests pass.</td></tr>
+      <tr><td class="label-ext">Extended</td><td>Tab bar items have correct SF Symbol icons and titles. Photo detail still pushes correctly within the Home tab's nav stack.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Tests</h2>
+  <p><span class="tag tag-test">MainTabCoordinatorTests</span></p>
+
+  <h2>Commit</h2>
+  <div class="commit-msg">feat: add tab bar navigation with MainTabCoordinator</div>
+
+  <div class="solution-links">
+    <h3>Solution</h3>
+    <p class="no-repo">Configure your GitHub repo URL in the settings bar to enable solution links.</p>
+    <ul>
+      <li><a data-branch="e10" target="_blank">Browse full solution</a></li>
+      <li><a data-diff="e09..e10" target="_blank">View diff from E9</a></li>
+      <li><a data-branch="e10" data-path="PinBoard/App/Coordinators/MainTabCoordinator.swift" target="_blank">MainTabCoordinator.swift</a></li>
+      <li><a data-branch="e10" data-path="PinBoard/App/Coordinators/AppCoordinator.swift" target="_blank">AppCoordinator.swift (refactored)</a></li>
+      <li><a data-branch="e10" data-path="PinBoardTests/App/MainTabCoordinatorTests.swift" target="_blank">MainTabCoordinatorTests.swift</a></li>
+    </ul>
+  </div>
+
+</div>
+
+<script src="shared.js"></script>
+</body>
+</html>

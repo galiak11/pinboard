@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E5: Home Feed Service & ViewModel — PinBoard Course</title>
+  <link rel="stylesheet" href="shared.css">
+</head>
+<body>
+
+<div class="settings-bar">
+  <label>GitHub Repo:</label>
+  <input type="text" placeholder="owner/repo or full URL">
+  <span class="status error">Enter your repo</span>
+</div>
+
+<nav class="nav-bar">
+  <div class="nav-group">
+    <a href="index.html">← Overview</a>
+    <a href="e04-coordinators.html">← E4: Coordinators</a>
+  </div>
+  <span class="nav-title">E5 of 14</span>
+  <div class="nav-group">
+    <a href="e06-feed-ui.html">E6: Feed UI →</a>
+  </div>
+</nav>
+
+<div class="container">
+
+  <h1>E5: Home Feed Service &amp; ViewModel</h1>
+  <p class="subtitle">
+    <span class="tag tag-topic">MVVM</span>
+    <span class="tag tag-topic">State Machine</span>
+    <span class="tag tag-topic">Service Layer</span>
+    <span class="tag tag-topic">Mocking</span>
+    <span class="tag tag-prereq">Requires E2, E3, E4</span>
+  </p>
+
+  <h2>Problem</h2>
+  <p>Build the business logic for the home feed. A service layer fetches photos from the API. A ViewModel manages a state machine that tracks loading, success, and error states, and transforms raw API models into display-ready cell view models. Everything must be testable through protocol-based mocking.</p>
+
+  <h2>What the Solution Looks Like</h2>
+  <p><code>HomeFeedService</code> fetching from <code>.photos(page:)</code>. <code>PhotoCellViewModel</code> as a display-ready struct with formatted likes text and pre-calculated aspect ratio. <code>HomeFeedViewModel</code> with a <code>FeedState</code> enum driving outputs via closures. A mock service enabling comprehensive ViewModel tests.</p>
+
+  <h2>Steps</h2>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 1</span>
+      <span class="step-title">Create HomeFeedService</span>
+    </div>
+    <p>Define <code>HomeFeedServiceProtocol</code> with <code>func fetchPhotos(page: Int) async throws -> [UnsplashPhoto]</code>. Implement <code>HomeFeedService</code> that takes an <code>APIClientProtocol</code> and calls the <code>.photos(page:)</code> endpoint.</p>
+    <p>Register it on <code>AppDependencyContainer</code> — add a <code>homeFeedService: HomeFeedServiceProtocol</code> property.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 2</span>
+      <span class="step-title">Create PhotoCellViewModel</span>
+    </div>
+    <p>Display-ready struct with: <code>id: String</code>, <code>imageURL: URL</code>, <code>title: String</code>, <code>authorName: String</code>, <code>aspectRatio: CGFloat</code>, <code>likesText: String</code>.</p>
+    <p>Create <code>init(photo: UnsplashPhoto)</code> that transforms the model:</p>
+    <ul>
+      <li><code>imageURL</code> = <code>photo.urls.small</code></li>
+      <li><code>title</code> = <code>photo.description ?? ""</code></li>
+      <li><code>aspectRatio</code> = <code>CGFloat(photo.width) / CGFloat(photo.height)</code></li>
+      <li><code>likesText</code> = formatted: 0 → "No likes yet", 1 → "1 like", 500 → "500 likes", 14500 → "14.5K likes"</li>
+    </ul>
+  </div>
+
+  <details>
+    <summary>Hint: Likes formatting</summary>
+    <div class="hint-body">
+<pre><code>static func formatLikes(_ count: Int) -> String {
+    switch count {
+    case 0: return "No likes yet"
+    case 1: return "1 like"
+    case 2..&lt;1000: return "\(count) likes"
+    default:
+        let thousands = Double(count) / 1000.0
+        return String(format: "%.1fK likes", thousands)
+    }
+}</code></pre>
+    </div>
+  </details>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 3</span>
+      <span class="step-title">Create HomeFeedViewModel with state machine</span>
+    </div>
+    <p>Define <code>FeedState</code> enum: <code>.idle</code>, <code>.loading</code>, <code>.loaded(hasMore: Bool)</code>, <code>.error(String)</code>.</p>
+    <p>ViewModel properties:</p>
+    <ul>
+      <li>Inputs: <code>viewDidLoad()</code>, <code>didPullToRefresh()</code></li>
+      <li>Outputs (closures): <code>var onStateChanged: ((FeedState) -> Void)?</code>, <code>var onPhotosUpdated: (([PhotoCellViewModel]) -> Void)?</code></li>
+      <li>Internal: current state, array of cell view models, current page number</li>
+    </ul>
+    <p><code>viewDidLoad()</code>: if idle, transition to <code>.loading</code>, call service, on success transform to cell VMs and transition to <code>.loaded(hasMore: count == 20)</code>, on error transition to <code>.error(message)</code>.</p>
+    <p>Use <code>Task { @MainActor in ... }</code> for async calls so outputs fire on main thread.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 4</span>
+      <span class="step-title">Write tests</span>
+    </div>
+    <p>Create <code>MockHomeFeedService</code>: stores a <code>stubbedResult</code> and records call count/page.</p>
+    <p><code>HomeFeedViewModelTests</code>:</p>
+    <ul>
+      <li><code>viewDidLoad</code> triggers loading → success populates cell VMs</li>
+      <li><code>viewDidLoad</code> with error → transitions to <code>.error</code></li>
+      <li>Empty response → <code>.loaded(hasMore: false)</code></li>
+      <li>Cell view models correctly formatted</li>
+    </ul>
+    <p><code>HomeFeedServiceTests</code>: correct endpoint called, response mapped, errors propagated.</p>
+    <p><code>PhotoCellViewModelTests</code>: likes formatting (0, 1, hundreds, thousands), aspect ratio (landscape, portrait, square), nil description fallback.</p>
+  </div>
+
+  <details>
+    <summary>Hint: Testing async ViewModel with closures</summary>
+    <div class="hint-body">
+      <p>Since the VM uses async internally, tests need to wait for state changes. Pattern:</p>
+<pre><code>var states: [FeedState] = []
+sut.onStateChanged = { states.append($0) }
+sut.viewDidLoad()
+// Wait for async to complete
+try await Task.sleep(for: .milliseconds(200))
+#expect(states.contains(.loading))
+#expect(states.last == .loaded(hasMore: true))</code></pre>
+    </div>
+  </details>
+
+  <h2>Success Criteria</h2>
+  <table class="rubric">
+    <thead><tr><th>Level</th><th>Criteria</th></tr></thead>
+    <tbody>
+      <tr><td class="label-min">Minimal</td><td>ViewModel state transitions work correctly. All tests pass.</td></tr>
+      <tr><td class="label-ext">Extended</td><td>Edge cases: empty response → hasMore false, nil descriptions, likes formatting for all ranges (0, 1, hundreds, thousands).</td></tr>
+    </tbody>
+  </table>
+
+  <h2>Tests</h2>
+  <p><span class="tag tag-test">HomeFeedViewModelTests</span> <span class="tag tag-test">HomeFeedServiceTests</span> <span class="tag tag-test">PhotoCellViewModelTests</span></p>
+
+  <h2>Commit</h2>
+  <div class="commit-msg">feat: add home feed service and viewmodel with state machine</div>
+
+  <div class="solution-links">
+    <h3>Solution</h3>
+    <p class="no-repo">Configure your GitHub repo URL in the settings bar to enable solution links.</p>
+    <ul>
+      <li><a data-branch="e05" target="_blank">Browse full solution</a></li>
+      <li><a data-diff="e04..e05" target="_blank">View diff from E4</a></li>
+      <li><a data-branch="e05" data-path="PinBoard/Features/HomeFeed/HomeFeedService.swift" target="_blank">HomeFeedService.swift</a></li>
+      <li><a data-branch="e05" data-path="PinBoard/Features/HomeFeed/PhotoCellViewModel.swift" target="_blank">PhotoCellViewModel.swift</a></li>
+      <li><a data-branch="e05" data-path="PinBoard/Features/HomeFeed/HomeFeedViewModel.swift" target="_blank">HomeFeedViewModel.swift</a></li>
+      <li><a data-branch="e05" data-path="PinBoardTests/Mocks/MockHomeFeedService.swift" target="_blank">MockHomeFeedService.swift</a></li>
+      <li><a data-branch="e05" data-path="PinBoardTests/Features/HomeFeed/HomeFeedViewModelTests.swift" target="_blank">HomeFeedViewModelTests.swift</a></li>
+      <li><a data-branch="e05" data-path="PinBoardTests/Features/HomeFeed/HomeFeedServiceTests.swift" target="_blank">HomeFeedServiceTests.swift</a></li>
+      <li><a data-branch="e05" data-path="PinBoardTests/Features/HomeFeed/PhotoCellViewModelTests.swift" target="_blank">PhotoCellViewModelTests.swift</a></li>
+    </ul>
+  </div>
+
+</div>
+
+<script src="shared.js"></script>
+</body>
+</html>
