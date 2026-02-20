@@ -12,15 +12,14 @@ Build a photos feed app from scratch using UIKit, MVVM, and Coordinators. 14 exe
 
 ## Prerequisites
 
-- Xcode 16+
-- `brew install xcodegen`
+- Xcode 26+
 - Free [Unsplash developer account](https://unsplash.com/developers) (Access Key only)
 
 ## Workflow
 
 1. Read the exercise page
 2. Implement the feature
-3. Run tests: `xcodegen generate && xcodebuild test -scheme PinBoard -destination 'platform=iOS Simulator,name=iPhone 16'`
+3. Run tests: Cmd+U in Xcode (or `xcodebuild test -scheme PinBoard -destination 'platform=iOS Simulator,name=iPhone 16'`)
 4. Commit and push
 5. Move to the next exercise
 

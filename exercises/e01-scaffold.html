@@ -28,27 +28,60 @@
 
   <h1>E1: Project Scaffold &amp; Design System</h1>
   <p class="subtitle">
-    <span class="tag tag-topic">XcodeGen</span>
+    <span class="tag tag-topic">Xcode Project</span>
     <span class="tag tag-topic">UIKit Lifecycle</span>
     <span class="tag tag-topic">Asset Catalogs</span>
     <span class="tag tag-topic">Design Tokens</span>
   </p>
 
   <h2>Problem</h2>
-  <p>You're starting a new iOS app called <strong>PinBoard</strong>. Set up the project using XcodeGen (not Xcode's GUI project wizard), create the app lifecycle files, and establish a design system with semantic color tokens and typography that support light/dark mode and Dynamic Type.</p>
+  <p>You're starting a new iOS app called <strong>PinBoard</strong>. Create the project in Xcode, set up a programmatic UIKit lifecycle with a <code>UINavigationController</code> as root, organize the source files into a clean folder structure, and establish a design system with semantic color tokens and typography that support light/dark mode and Dynamic Type.</p>
   <p>By the end of this exercise, the app should build, launch on a simulator, and display an empty screen with your themed background color.</p>
 
   <h2>What the Solution Looks Like</h2>
-  <p>A <code>project.yml</code> that generates a valid Xcode project with <code>xcodegen generate</code>. An <code>AppDelegate</code> and <code>SceneDelegate</code> that create a UIWindow. An asset catalog with color sets for light/dark mode. <code>AppColors</code> and <code>AppFonts</code> enums providing semantic design tokens throughout the app.</p>
+  <p>An Xcode project created via File → New → Project, with a programmatic <code>SceneDelegate</code> that creates a UIWindow with a <code>UINavigationController</code>. Source files organized into feature-based groups. An asset catalog with color sets for light/dark mode. <code>AppColors</code> and <code>AppFonts</code> enums providing semantic design tokens throughout the app.</p>
 
   <h2>Steps</h2>
 
   <div class="step">
     <div class="step-header">
       <span class="step-num">Step 1</span>
-      <span class="step-title">Create project.yml and directory structure</span>
+      <span class="step-title">Create the Xcode project</span>
     </div>
-    <p>Define an iOS app target called <code>PinBoard</code> (iOS 16.0+, Swift 5.9) and a test target <code>PinBoardTests</code>. Create the folder structure:</p>
+    <p>In Xcode: <strong>File → New → Project → App</strong>. Configure:</p>
+    <ul>
+      <li>Product Name: <code>PinBoard</code></li>
+      <li>Language: <strong>Swift</strong></li>
+      <li>Check <strong>Include Tests</strong></li>
+      <li><strong>Uncheck</strong> "Create Git repository on my Mac" — your cloned fork is already a git repo</li>
+    </ul>
+    <p>Save the project <strong>inside your cloned repo folder</strong> so it sits alongside the <code>exercises/</code> directory. Xcode will automatically detect the existing git repo and show file change indicators in the Project Navigator.</p>
+    <p>Xcode generates an <code>AppDelegate</code>, <code>SceneDelegate</code>, and a default <code>ViewController</code>. Delete the default <code>ViewController.swift</code> — we won't need it.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 2</span>
+      <span class="step-title">Set up the programmatic window</span>
+    </div>
+    <p>Update <code>SceneDelegate</code> to create a <code>UIWindow</code> with a <code>UINavigationController</code> as root:</p>
+<pre><code>func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
+    guard let windowScene = (scene as? UIWindowScene) else { return }
+    let window = UIWindow(windowScene: windowScene)
+    let nav = UINavigationController()
+    window.rootViewController = nav
+    window.makeKeyAndVisible()
+    self.window = window
+}</code></pre>
+    <p>Build and run — you should see an empty screen.</p>
+  </div>
+
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 3</span>
+      <span class="step-title">Organize the folder structure</span>
+    </div>
+    <p>Create Xcode groups (backed by real folders) to organize the project for the features we'll build:</p>
 <pre><code>PinBoard/
 ├── App/
 │   └── Coordinators/
@@ -60,7 +93,7 @@
 │   └── Models/
 ├── DesignSystem/
 └── Resources/
-    └── Assets.xcassets/
+    └── Assets.xcassets (move existing one here)
 
 PinBoardTests/
 ├── Core/
@@ -70,100 +103,53 @@ PinBoardTests/
 ├── App/
 ├── Mocks/
 └── Fixtures/</code></pre>
-    <p>Run <code>xcodegen generate</code> and verify the project opens in Xcode.</p>
+    <p>Move <code>AppDelegate.swift</code> and <code>SceneDelegate.swift</code> into <code>PinBoard/App/</code>. Move <code>Assets.xcassets</code> and <code>Info.plist</code> into <code>PinBoard/Resources/</code>. Make sure the project still builds after reorganizing.</p>
   </div>
 
   <details>
-    <summary>Hint: project.yml structure</summary>
+    <summary>Hint: Creating folder-backed groups in Xcode</summary>
     <div class="hint-body">
-<pre><code>name: PinBoard
-options:
-  bundleIdPrefix: com.demo.pinboard
-  deploymentTarget:
-    iOS: "16.0"
-  xcodeVersion: "16.0"
-
-settings:
-  SWIFT_VERSION: "5.9"
-
-targets:
-  PinBoard:
-    type: application
-    platform: iOS
-    sources: [PinBoard]
-    resources: [PinBoard/Resources]
-    # ...
-  PinBoardTests:
-    type: bundle.unit-test
-    platform: iOS
-    sources: [PinBoardTests]
-    dependencies:
-      - target: PinBoard</code></pre>
+      <p>In Xcode's Project Navigator, right-click the <code>PinBoard</code> group → <strong>New Group</strong>. Name it (e.g., "App"). Xcode creates both the group and a matching folder on disk. Drag existing files into the new groups. If Xcode shows files in red, check that the file's location matches via the File Inspector (right panel).</p>
+      <p>You can also create folders in Finder first, then drag them into Xcode and choose "Create groups."</p>
     </div>
   </details>
 
   <div class="step">
     <div class="step-header">
-      <span class="step-num">Step 2</span>
-      <span class="step-title">Create AppDelegate and SceneDelegate</span>
-    </div>
-    <p>Minimal app lifecycle. <code>AppDelegate</code> returns the default scene configuration. <code>SceneDelegate</code> creates a <code>UIWindow</code>, sets a <code>UINavigationController</code> as its root view controller, and makes it key and visible.</p>
-    <p>The app should launch and show an empty screen.</p>
-  </div>
-
-  <details>
-    <summary>Hint: SceneDelegate setup</summary>
-    <div class="hint-body">
-      <p>In <code>scene(_:willConnectTo:options:)</code>:</p>
-<pre><code>guard let windowScene = (scene as? UIWindowScene) else { return }
-let window = UIWindow(windowScene: windowScene)
-let nav = UINavigationController()
-window.rootViewController = nav
-window.makeKeyAndVisible()
-self.window = window</code></pre>
-    </div>
-  </details>
-
-  <div class="step">
-    <div class="step-header">
-      <span class="step-num">Step 3</span>
+      <span class="step-num">Step 4</span>
       <span class="step-title">Create the design system</span>
     </div>
-    <p>Add color sets to <code>Assets.xcassets</code> with light and dark variants for: <strong>Primary</strong>, <strong>Secondary</strong>, <strong>Background</strong>, <strong>Surface</strong>, <strong>OnSurface</strong>, <strong>OnSurfaceSecondary</strong>, <strong>Error</strong>, <strong>Divider</strong>.</p>
-    <p>Create <code>AppColors</code> enum with static properties returning <code>UIColor(named:)</code> for each token.</p>
-    <p>Create <code>AppFonts</code> enum with static properties using <code>UIFont.preferredFont(forTextStyle:)</code> for: <strong>heading</strong> (.title2), <strong>subheading</strong> (.headline), <strong>body</strong> (.body), <strong>caption</strong> (.caption1), <strong>label</strong> (.footnote).</p>
-    <p>Set the navigation controller's view background to <code>AppColors.background</code> to verify theming works.</p>
+    <p>Add color sets to <code>Assets.xcassets</code> (via Xcode's asset catalog editor) with light and dark variants for: <strong>Primary</strong>, <strong>Secondary</strong>, <strong>Background</strong>, <strong>Surface</strong>, <strong>OnSurface</strong>, <strong>OnSurfaceSecondary</strong>, <strong>Error</strong>, <strong>Divider</strong>.</p>
+    <p>Create <code>DesignSystem/Colors.swift</code> — an <code>AppColors</code> enum with static properties:</p>
+<pre><code>enum AppColors {
+    static let primary = UIColor(named: "Primary")!
+    static let background = UIColor(named: "Background")!
+    // ... one for each token
+}</code></pre>
+    <p>Create <code>DesignSystem/Fonts.swift</code> — an <code>AppFonts</code> enum with static properties using <code>UIFont.preferredFont(forTextStyle:)</code> for: <strong>heading</strong> (.title2), <strong>subheading</strong> (.headline), <strong>body</strong> (.body), <strong>caption</strong> (.caption1), <strong>label</strong> (.footnote).</p>
+    <p>Set the navigation controller's view background to <code>AppColors.background</code> in SceneDelegate to verify theming works. Toggle dark mode in the simulator (Cmd+Shift+A) to confirm both variants load.</p>
   </div>
-
-  <details>
-    <summary>Hint: Asset catalog color sets</summary>
-    <div class="hint-body">
-      <p>Each color set in <code>Assets.xcassets</code> needs a <code>Contents.json</code> with both "Any" and "Dark" appearances. Create folders like <code>Assets.xcassets/Colors/Primary.colorset/</code>.</p>
-      <p>Alternatively, add colors through Xcode's asset catalog GUI — easier for picking color values.</p>
-    </div>
-  </details>
 
   <h2>Success Criteria</h2>
   <table class="rubric">
     <thead><tr><th>Level</th><th>Criteria</th></tr></thead>
     <tbody>
-      <tr><td class="label-min">Minimal</td><td>App builds with <code>xcodegen generate</code>, launches on simulator, shows empty screen with themed background</td></tr>
-      <tr><td class="label-ext">Extended</td><td>All 8 color tokens defined with light/dark variants. All 5 font tokens use Dynamic Type. Background color visible on launch.</td></tr>
+      <tr><td class="label-min">Minimal</td><td>App builds, launches on simulator, shows empty screen with themed background color</td></tr>
+      <tr><td class="label-ext">Extended</td><td>All 8 color tokens defined with light/dark variants. All 5 font tokens use Dynamic Type. Folder structure matches the target layout. Background color switches correctly in dark mode.</td></tr>
     </tbody>
   </table>
 
   <h2>Tests</h2>
-  <p>None for this exercise — verification is visual (app launches, background color is correct).</p>
+  <p>None for this exercise — verification is visual (app launches, background color is correct, dark mode works).</p>
 
   <h2>Commit</h2>
-  <div class="commit-msg">feat: scaffold project with XcodeGen and design system</div>
+  <div class="commit-msg">feat: scaffold project with design system</div>
 
   <div class="solution-links">
     <h3>Solution</h3>
     <p class="no-repo">Configure your GitHub repo URL in the settings bar to enable solution links.</p>
     <ul>
       <li><a data-branch="e01" target="_blank">Browse full solution</a></li>
-      <li><a data-branch="e01" data-path="project.yml" target="_blank">project.yml</a></li>
       <li><a data-branch="e01" data-path="PinBoard/App/AppDelegate.swift" target="_blank">AppDelegate.swift</a></li>
       <li><a data-branch="e01" data-path="PinBoard/App/SceneDelegate.swift" target="_blank">SceneDelegate.swift</a></li>
       <li><a data-branch="e01" data-path="PinBoard/DesignSystem/Colors.swift" target="_blank">Colors.swift</a></li>
