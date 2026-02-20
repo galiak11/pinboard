@@ -49,30 +49,53 @@
       <span class="step-num">Step 1</span>
       <span class="step-title">Define Endpoint protocol and APIError</span>
     </div>
-    <p>Create <code>Endpoint</code> protocol with properties: <code>path: String</code>, <code>method: String</code> (default "GET"), <code>queryItems: [URLQueryItem]</code> (default empty). Add a method <code>urlRequest(baseURL: URL, accessKey: String) -> URLRequest</code> that builds the full URL, adds query items, sets the HTTP method, and adds the <code>Authorization: Client-ID &lt;key&gt;</code> header.</p>
-    <p>Create <code>APIError</code> enum conforming to <code>LocalizedError</code> with cases: <code>httpError(statusCode: Int)</code>, <code>decodingError</code>, <code>networkError(Error)</code>, <code>unknown</code>.</p>
+    <p>Create <code>Endpoint</code> protocol with properties: <code>path: String</code>, <code>method: HTTPMethod</code> (default <code>.get</code>), <code>queryItems: [URLQueryItem]?</code> (default nil). Define an <code>HTTPMethod</code> enum with raw string values.</p>
+    <p>Create <code>APIError</code> enum conforming to <code>Error</code> and <code>LocalizedError</code> with cases: <code>invalidURL</code>, <code>httpError(statusCode: Int)</code>, <code>decodingError(Error)</code>, <code>networkError(Error)</code>, <code>unknown</code>.</p>
   </div>
 
   <details>
-    <summary>Hint: Endpoint protocol with default implementation</summary>
+    <summary>Solution: Endpoint.swift</summary>
     <div class="hint-body">
-<pre><code>protocol Endpoint {
+<pre><code>import Foundation
+
+protocol Endpoint {
     var path: String { get }
-    var method: String { get }
-    var queryItems: [URLQueryItem] { get }
+    var method: HTTPMethod { get }
+    var queryItems: [URLQueryItem]? { get }
 }
 
-extension Endpoint {
-    var method: String { "GET" }
-    var queryItems: [URLQueryItem] { [] }
+enum HTTPMethod: String {
+    case get = "GET"
+    case post = "POST"
+}</code></pre>
+    </div>
+  </details>
 
-    func urlRequest(baseURL: URL, accessKey: String) -> URLRequest {
-        var components = URLComponents(url: baseURL.appendingPathComponent(path), resolvingAgainstBaseURL: true)!
-        if !queryItems.isEmpty { components.queryItems = queryItems }
-        var request = URLRequest(url: components.url!)
-        request.httpMethod = method
-        request.setValue("Client-ID \(accessKey)", forHTTPHeaderField: "Authorization")
-        return request
+  <details>
+    <summary>Solution: APIError.swift</summary>
+    <div class="hint-body">
+<pre><code>import Foundation
+
+enum APIError: Error, LocalizedError {
+    case invalidURL
+    case httpError(statusCode: Int)
+    case decodingError(Error)
+    case networkError(Error)
+    case unknown
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidURL:
+            return "Invalid URL."
+        case .httpError(let statusCode):
+            return "Server error (HTTP \(statusCode))."
+        case .decodingError:
+            return "Failed to parse server response."
+        case .networkError(let error):
+            return error.localizedDescription
+        case .unknown:
+            return "An unknown error occurred."
+        }
     }
 }</code></pre>
     </div>
@@ -83,12 +106,48 @@ extension Endpoint {
       <span class="step-num">Step 2</span>
       <span class="step-title">Implement Unsplash endpoints</span>
     </div>
-    <p>Create <code>UnsplashEndpoint</code> enum with cases:</p>
+    <p>Create <code>UnsplashEndpoint</code> enum conforming to <code>Endpoint</code> with cases:</p>
     <ul>
-      <li><code>.photos(page: Int)</code> — path: <code>/photos</code>, query: <code>page</code>, <code>per_page=20</code>, <code>order_by=popular</code></li>
+      <li><code>.photos(page: Int, perPage: Int = 20)</code> — path: <code>/photos</code>, query: <code>page</code>, <code>per_page</code>, <code>order_by=popular</code></li>
       <li><code>.photo(id: String)</code> — path: <code>/photos/{id}</code>, no query items</li>
     </ul>
   </div>
+
+  <details>
+    <summary>Solution: UnsplashEndpoints.swift</summary>
+    <div class="hint-body">
+<pre><code>import Foundation
+
+enum UnsplashEndpoint: Endpoint {
+    case photos(page: Int, perPage: Int = 20)
+    case photo(id: String)
+
+    var path: String {
+        switch self {
+        case .photos:
+            return "/photos"
+        case .photo(let id):
+            return "/photos/\(id)"
+        }
+    }
+
+    var method: HTTPMethod { .get }
+
+    var queryItems: [URLQueryItem]? {
+        switch self {
+        case .photos(let page, let perPage):
+            return [
+                URLQueryItem(name: "page", value: "\(page)"),
+                URLQueryItem(name: "per_page", value: "\(perPage)"),
+                URLQueryItem(name: "order_by", value: "popular")
+            ]
+        case .photo:
+            return nil
+        }
+    }
+}</code></pre>
+    </div>
+  </details>
 
   <div class="step">
     <div class="step-header">
@@ -97,10 +156,86 @@ extension Endpoint {
     </div>
     <p>Define <code>APIClientProtocol</code>:</p>
 <pre><code>protocol APIClientProtocol {
-    func request&lt;T: Decodable&gt;(_ endpoint: any Endpoint) async throws -> T
+    func request&lt;T: Decodable&gt;(_ endpoint: Endpoint) async throws -> T
 }</code></pre>
-    <p>Implement <code>APIClient</code>: takes <code>baseURL</code>, <code>accessKey</code>, and an optional <code>URLSession</code> (for test injection). In <code>request()</code>: build the URLRequest from the endpoint, call <code>URLSession.data(for:)</code>, check the HTTP status code (2xx = success, else throw <code>.httpError</code>), decode with <code>JSONDecoder</code> (catch decoding errors as <code>.decodingError</code>).</p>
+    <p>Implement <code>APIClient</code>: takes <code>baseURL</code>, <code>accessKey</code>, and an optional <code>URLSession</code> (for test injection). In <code>request()</code>: build the URLRequest from the endpoint, call <code>URLSession.data(for:)</code>, check the HTTP status code (2xx = success, else throw <code>.httpError</code>), decode with <code>JSONDecoder</code> using <code>.convertFromSnakeCase</code> and <code>.iso8601</code> strategies.</p>
   </div>
+
+  <details>
+    <summary>Solution: APIClientProtocol.swift</summary>
+    <div class="hint-body">
+<pre><code>import Foundation
+
+protocol APIClientProtocol {
+    func request&lt;T: Decodable&gt;(_ endpoint: Endpoint) async throws -> T
+}</code></pre>
+    </div>
+  </details>
+
+  <details>
+    <summary>Solution: APIClient.swift</summary>
+    <div class="hint-body">
+<pre><code>import Foundation
+
+final class APIClient: APIClientProtocol {
+    private let session: URLSession
+    private let baseURL: URL
+    private let accessKey: String
+
+    init(baseURL: URL, accessKey: String, session: URLSession = .shared) {
+        self.baseURL = baseURL
+        self.accessKey = accessKey
+        self.session = session
+    }
+
+    func request&lt;T: Decodable&gt;(_ endpoint: Endpoint) async throws -> T {
+        guard var components = URLComponents(
+            url: baseURL.appendingPathComponent(endpoint.path),
+            resolvingAgainstBaseURL: false
+        ) else {
+            throw APIError.invalidURL
+        }
+
+        components.queryItems = endpoint.queryItems
+
+        guard let url = components.url else {
+            throw APIError.invalidURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = endpoint.method.rawValue
+        request.setValue("Client-ID \(accessKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Accept")
+
+        let data: Data
+        let response: URLResponse
+
+        do {
+            (data, response) = try await session.data(for: request)
+        } catch {
+            throw APIError.networkError(error)
+        }
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw APIError.unknown
+        }
+
+        guard (200...299).contains(httpResponse.statusCode) else {
+            throw APIError.httpError(statusCode: httpResponse.statusCode)
+        }
+
+        do {
+            let decoder = JSONDecoder()
+            decoder.keyDecodingStrategy = .convertFromSnakeCase
+            decoder.dateDecodingStrategy = .iso8601
+            return try decoder.decode(T.self, from: data)
+        } catch {
+            throw APIError.decodingError(error)
+        }
+    }
+}</code></pre>
+    </div>
+  </details>
 
   <div class="step">
     <div class="step-header">
@@ -110,43 +245,304 @@ extension Endpoint {
     <p>Create <code>Secrets.example.swift</code> (committed) with a placeholder key. Create <code>Secrets.swift</code> (gitignored) with your real Unsplash access key. Both define an <code>enum Secrets</code> with <code>static let unsplashAccessKey</code>.</p>
   </div>
 
+  <details>
+    <summary>Solution: Secrets.example.swift</summary>
+    <div class="hint-body">
+<pre><code>import Foundation
+
+enum Secrets {
+    static let unsplashAccessKey = "YOUR_ACCESS_KEY_HERE"
+}</code></pre>
+    </div>
+  </details>
+
   <div class="step">
     <div class="step-header">
       <span class="step-num">Step 5</span>
       <span class="step-title">Write tests</span>
     </div>
-    <p>Create <code>MockURLProtocol</code>: a <code>URLProtocol</code> subclass with static stubs for data, response, and error. Override <code>startLoading()</code> to return the stubbed values.</p>
+    <p>Create <code>MockURLProtocol</code>: a <code>URLProtocol</code> subclass with static stubs for data, response, and error. Override <code>startLoading()</code> to return the stubbed values. Add <code>lastRequest</code> to capture the request for header assertions.</p>
     <p>Create <code>MockAPIClient</code>: conforms to <code>APIClientProtocol</code>, stores a <code>stubbedResult: Result&lt;Any, Error&gt;</code> and records <code>requestedEndpoints</code>.</p>
     <p>Write <code>UnsplashEndpointsTests</code>: verify paths, query items, HTTP methods for both endpoints.</p>
     <p>Write <code>APIClientTests</code> (XCTest, using MockURLProtocol): test success decoding, HTTP error responses, invalid JSON, network errors, and that the auth header is injected.</p>
   </div>
 
   <details>
-    <summary>Hint: MockURLProtocol pattern</summary>
+    <summary>Solution: MockURLProtocol.swift</summary>
     <div class="hint-body">
-<pre><code>final class MockURLProtocol: URLProtocol {
+<pre><code>import Foundation
+
+final class MockURLProtocol: URLProtocol {
     static var stubbedData: Data?
     static var stubbedResponse: HTTPURLResponse?
     static var stubbedError: Error?
+    static var lastRequest: URLRequest?
 
     override class func canInit(with request: URLRequest) -> Bool { true }
+
     override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
 
     override func startLoading() {
-        if let error = Self.stubbedError {
+        MockURLProtocol.lastRequest = request
+
+        if let error = MockURLProtocol.stubbedError {
             client?.urlProtocol(self, didFailWithError: error)
-        } else {
-            if let response = Self.stubbedResponse {
-                client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
-            }
-            if let data = Self.stubbedData {
-                client?.urlProtocol(self, didLoad: data)
-            }
-            client?.urlProtocolDidFinishLoading(self)
+            return
         }
+
+        if let response = MockURLProtocol.stubbedResponse {
+            client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        }
+
+        if let data = MockURLProtocol.stubbedData {
+            client?.urlProtocol(self, didLoad: data)
+        }
+
+        client?.urlProtocolDidFinishLoading(self)
     }
 
     override func stopLoading() {}
+
+    static func reset() {
+        stubbedData = nil
+        stubbedResponse = nil
+        stubbedError = nil
+        lastRequest = nil
+    }
+}</code></pre>
+    </div>
+  </details>
+
+  <details>
+    <summary>Solution: MockAPIClient.swift</summary>
+    <div class="hint-body">
+<pre><code>import Foundation
+@testable import PinBoard
+
+final class MockAPIClient: APIClientProtocol {
+    var stubbedResult: Result&lt;Any, Error&gt; = .failure(APIError.unknown)
+    private(set) var requestedEndpoints: [any Endpoint] = []
+
+    func request&lt;T: Decodable&gt;(_ endpoint: any Endpoint) async throws -> T {
+        requestedEndpoints.append(endpoint)
+        switch stubbedResult {
+        case .success(let value):
+            guard let typed = value as? T else {
+                throw APIError.decodingError(
+                    NSError(domain: "MockAPIClient", code: 0,
+                            userInfo: [NSLocalizedDescriptionKey: "Type mismatch in mock"])
+                )
+            }
+            return typed
+        case .failure(let error):
+            throw error
+        }
+    }
+
+    var lastRequestedEndpoint: (any Endpoint)? {
+        requestedEndpoints.last
+    }
+}</code></pre>
+    </div>
+  </details>
+
+  <details>
+    <summary>Solution: UnsplashEndpointsTests.swift</summary>
+    <div class="hint-body">
+<pre><code>import Testing
+import Foundation
+@testable import PinBoard
+
+@Suite("Unsplash Endpoints")
+struct UnsplashEndpointsTests {
+
+    @Test func photosEndpoint_path() {
+        let endpoint = UnsplashEndpoint.photos(page: 1)
+        #expect(endpoint.path == "/photos")
+    }
+
+    @Test func photosEndpoint_method() {
+        let endpoint = UnsplashEndpoint.photos(page: 1)
+        #expect(endpoint.method == .get)
+    }
+
+    @Test func photosEndpoint_queryItems() {
+        let endpoint = UnsplashEndpoint.photos(page: 3, perPage: 15)
+        let queryItems = endpoint.queryItems!
+
+        #expect(queryItems.contains(URLQueryItem(name: "page", value: "3")))
+        #expect(queryItems.contains(URLQueryItem(name: "per_page", value: "15")))
+        #expect(queryItems.contains(URLQueryItem(name: "order_by", value: "popular")))
+    }
+
+    @Test func photosEndpoint_defaultPerPage() {
+        let endpoint = UnsplashEndpoint.photos(page: 1)
+        let queryItems = endpoint.queryItems!
+        #expect(queryItems.contains(URLQueryItem(name: "per_page", value: "20")))
+    }
+
+    @Test func photoDetailEndpoint_path() {
+        let endpoint = UnsplashEndpoint.photo(id: "abc-123")
+        #expect(endpoint.path == "/photos/abc-123")
+    }
+
+    @Test func photoDetailEndpoint_method() {
+        let endpoint = UnsplashEndpoint.photo(id: "abc-123")
+        #expect(endpoint.method == .get)
+    }
+
+    @Test func photoDetailEndpoint_noQueryItems() {
+        let endpoint = UnsplashEndpoint.photo(id: "abc-123")
+        #expect(endpoint.queryItems == nil)
+    }
+}</code></pre>
+    </div>
+  </details>
+
+  <details>
+    <summary>Solution: APIClientTests.swift</summary>
+    <div class="hint-body">
+<pre><code>import XCTest
+@testable import PinBoard
+
+final class APIClientTests: XCTestCase {
+    private var sut: APIClient!
+    private var session: URLSession!
+
+    override func setUp() {
+        super.setUp()
+        let config = URLSessionConfiguration.ephemeral
+        config.protocolClasses = [MockURLProtocol.self]
+        session = URLSession(configuration: config)
+        sut = APIClient(
+            baseURL: URL(string: "https://api.unsplash.com")!,
+            accessKey: "test-key",
+            session: session
+        )
+    }
+
+    override func tearDown() {
+        MockURLProtocol.reset()
+        sut = nil
+        session = nil
+        super.tearDown()
+    }
+
+    func testRequest_success_decodesJSON() async throws {
+        let json = """
+        [{"id":"1","description":"Test","alt_description":null,\
+        "width":100,"height":200,"likes":5,\
+        "created_at":"2024-01-01T00:00:00Z",\
+        "user":{"id":"u1","username":"test","name":"Test User",\
+        "profile_image":{"small":"https://example.com/s.jpg",\
+        "medium":"https://example.com/m.jpg",\
+        "large":"https://example.com/l.jpg"}},\
+        "urls":{"raw":"https://example.com/r.jpg",\
+        "full":"https://example.com/f.jpg",\
+        "regular":"https://example.com/re.jpg",\
+        "small":"https://example.com/s.jpg",\
+        "thumb":"https://example.com/t.jpg"},\
+        "exif":null,"location":null}]
+        """.data(using: .utf8)!
+
+        MockURLProtocol.stubbedData = json
+        MockURLProtocol.stubbedResponse = HTTPURLResponse(
+            url: URL(string: "https://api.unsplash.com/photos")!,
+            statusCode: 200, httpVersion: nil, headerFields: nil
+        )
+
+        let photos: [UnsplashPhoto] = try await sut.request(
+            UnsplashEndpoint.photos(page: 1)
+        )
+        XCTAssertEqual(photos.count, 1)
+        XCTAssertEqual(photos.first?.id, "1")
+    }
+
+    func testRequest_httpError_throwsAPIError() async {
+        MockURLProtocol.stubbedData = Data()
+        MockURLProtocol.stubbedResponse = HTTPURLResponse(
+            url: URL(string: "https://api.unsplash.com/photos")!,
+            statusCode: 403, httpVersion: nil, headerFields: nil
+        )
+
+        do {
+            let _: [UnsplashPhoto] = try await sut.request(
+                UnsplashEndpoint.photos(page: 1)
+            )
+            XCTFail("Expected error")
+        } catch let error as APIError {
+            if case .httpError(let code) = error {
+                XCTAssertEqual(code, 403)
+            } else {
+                XCTFail("Wrong APIError case: \(error)")
+            }
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    func testRequest_invalidJSON_throwsDecodingError() async {
+        MockURLProtocol.stubbedData = "not json".data(using: .utf8)!
+        MockURLProtocol.stubbedResponse = HTTPURLResponse(
+            url: URL(string: "https://api.unsplash.com/photos")!,
+            statusCode: 200, httpVersion: nil, headerFields: nil
+        )
+
+        do {
+            let _: [UnsplashPhoto] = try await sut.request(
+                UnsplashEndpoint.photos(page: 1)
+            )
+            XCTFail("Expected error")
+        } catch let error as APIError {
+            if case .decodingError = error {
+                // Expected
+            } else {
+                XCTFail("Wrong APIError case: \(error)")
+            }
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    func testRequest_networkError_throwsAPIError() async {
+        MockURLProtocol.stubbedError = NSError(
+            domain: NSURLErrorDomain,
+            code: NSURLErrorNotConnectedToInternet
+        )
+
+        do {
+            let _: [UnsplashPhoto] = try await sut.request(
+                UnsplashEndpoint.photos(page: 1)
+            )
+            XCTFail("Expected error")
+        } catch let error as APIError {
+            if case .networkError = error {
+                // Expected
+            } else {
+                XCTFail("Wrong APIError case: \(error)")
+            }
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    func testRequest_injectsAuthHeader() async throws {
+        let json = "[]".data(using: .utf8)!
+        MockURLProtocol.stubbedData = json
+        MockURLProtocol.stubbedResponse = HTTPURLResponse(
+            url: URL(string: "https://api.unsplash.com/photos")!,
+            statusCode: 200, httpVersion: nil, headerFields: nil
+        )
+
+        let _: [UnsplashPhoto] = try await sut.request(
+            UnsplashEndpoint.photos(page: 1)
+        )
+
+        let authHeader = MockURLProtocol.lastRequest?.value(
+            forHTTPHeaderField: "Authorization"
+        )
+        XCTAssertEqual(authHeader, "Client-ID test-key")
+    }
 }</code></pre>
     </div>
   </details>
@@ -165,24 +561,6 @@ extension Endpoint {
 
   <h2>Commit</h2>
   <div class="commit-msg">feat: add protocol-oriented networking layer with tests</div>
-
-  <div class="solution-links">
-    <h3>Solution</h3>
-    <p class="no-repo">Configure your GitHub repo URL in the settings bar to enable solution links.</p>
-    <ul>
-      <li><a data-branch="e02" target="_blank">Browse full solution</a></li>
-      <li><a data-diff="e01..e02" target="_blank">View diff from E1</a></li>
-      <li><a data-branch="e02" data-path="PinBoard/Core/Networking/Endpoint.swift" target="_blank">Endpoint.swift</a></li>
-      <li><a data-branch="e02" data-path="PinBoard/Core/Networking/APIError.swift" target="_blank">APIError.swift</a></li>
-      <li><a data-branch="e02" data-path="PinBoard/Core/Networking/UnsplashEndpoints.swift" target="_blank">UnsplashEndpoints.swift</a></li>
-      <li><a data-branch="e02" data-path="PinBoard/Core/Networking/APIClientProtocol.swift" target="_blank">APIClientProtocol.swift</a></li>
-      <li><a data-branch="e02" data-path="PinBoard/Core/Networking/APIClient.swift" target="_blank">APIClient.swift</a></li>
-      <li><a data-branch="e02" data-path="PinBoardTests/Mocks/MockURLProtocol.swift" target="_blank">MockURLProtocol.swift</a></li>
-      <li><a data-branch="e02" data-path="PinBoardTests/Mocks/MockAPIClient.swift" target="_blank">MockAPIClient.swift</a></li>
-      <li><a data-branch="e02" data-path="PinBoardTests/Core/UnsplashEndpointsTests.swift" target="_blank">UnsplashEndpointsTests.swift</a></li>
-      <li><a data-branch="e02" data-path="PinBoardTests/Core/APIClientTests.swift" target="_blank">APIClientTests.swift</a></li>
-    </ul>
-  </div>
 
 </div>
 

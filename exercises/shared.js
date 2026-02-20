@@ -137,9 +137,10 @@ function updateCheckboxes() {
 /* --- Copy Buttons --- */
 
 function addCopyButtons() {
+  // Copy button on code blocks
   document.querySelectorAll('pre > code').forEach(codeEl => {
     const pre = codeEl.parentElement;
-    if (pre.querySelector('.copy-btn')) return; // already added
+    if (pre.querySelector('.copy-btn')) return;
     const btn = document.createElement('button');
     btn.className = 'copy-btn';
     btn.textContent = 'Copy';
@@ -154,6 +155,31 @@ function addCopyButtons() {
       });
     });
     pre.appendChild(btn);
+  });
+
+  // Copy filename button on solution summaries
+  document.querySelectorAll('details > summary').forEach(summary => {
+    const text = summary.textContent.trim();
+    if (!text.startsWith('Solution:')) return;
+    if (summary.querySelector('.copy-name')) return;
+    const filename = text.replace('Solution:', '').trim();
+    const btn = document.createElement('button');
+    btn.className = 'copy-name';
+    btn.textContent = 'C';
+    btn.title = 'Copy filename';
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      navigator.clipboard.writeText(filename).then(() => {
+        btn.textContent = '\u2713';
+        btn.classList.add('copied');
+        setTimeout(() => {
+          btn.textContent = 'C';
+          btn.classList.remove('copied');
+        }, 1500);
+      });
+    });
+    summary.appendChild(btn);
   });
 }
 

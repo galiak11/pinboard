@@ -282,6 +282,33 @@ pre:hover .copy-btn { opacity: 1; }
   opacity: 1;
 }
 
+/* Copy filename button on solution summaries */
+.copy-name {
+  display: inline-block;
+  margin-left: 6px;
+  background: var(--bg-code);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  padding: 0 5px;
+  cursor: pointer;
+  vertical-align: middle;
+  line-height: 18px;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.copy-name:hover {
+  color: var(--accent);
+  border-color: var(--accent-dim);
+}
+
+.copy-name.copied {
+  color: var(--green);
+  border-color: var(--green-dim);
+}
+
 code {
   font-family: 'SF Mono', Menlo, monospace;
   font-size: 13px;
