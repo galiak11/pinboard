@@ -1,0 +1,86 @@
+[
+  {
+    "id": "photo-001",
+    "description": "Sunset over the mountains",
+    "alt_description": "Orange sky above peaks",
+    "width": 4000,
+    "height": 6000,
+    "likes": 1234,
+    "created_at": "2024-06-15T10:30:00Z",
+    "user": {
+      "id": "user-001",
+      "username": "naturephoto",
+      "name": "Nature Photographer",
+      "profile_image": {
+        "small": "https://images.unsplash.com/profile-small.jpg",
+        "medium": "https://images.unsplash.com/profile-medium.jpg",
+        "large": "https://images.unsplash.com/profile-large.jpg"
+      }
+    },
+    "urls": {
+      "raw": "https://images.unsplash.com/photo-001-raw",
+      "full": "https://images.unsplash.com/photo-001-full",
+      "regular": "https://images.unsplash.com/photo-001-regular",
+      "small": "https://images.unsplash.com/photo-001-small",
+      "thumb": "https://images.unsplash.com/photo-001-thumb"
+    },
+    "exif": null,
+    "location": null
+  },
+  {
+    "id": "photo-002",
+    "description": null,
+    "alt_description": "A city skyline at night",
+    "width": 5000,
+    "height": 3333,
+    "likes": 567,
+    "created_at": "2024-07-20T14:00:00Z",
+    "user": {
+      "id": "user-002",
+      "username": "urbanshots",
+      "name": "Urban Shots",
+      "profile_image": {
+        "small": "https://images.unsplash.com/profile2-small.jpg",
+        "medium": "https://images.unsplash.com/profile2-medium.jpg",
+        "large": "https://images.unsplash.com/profile2-large.jpg"
+      }
+    },
+    "urls": {
+      "raw": "https://images.unsplash.com/photo-002-raw",
+      "full": "https://images.unsplash.com/photo-002-full",
+      "regular": "https://images.unsplash.com/photo-002-regular",
+      "small": "https://images.unsplash.com/photo-002-small",
+      "thumb": "https://images.unsplash.com/photo-002-thumb"
+    },
+    "exif": null,
+    "location": null
+  },
+  {
+    "id": "photo-003",
+    "description": "Fresh coffee on a wooden table",
+    "alt_description": "Coffee cup with latte art",
+    "width": 3000,
+    "height": 3000,
+    "likes": 0,
+    "created_at": "2024-08-01T09:15:00Z",
+    "user": {
+      "id": "user-003",
+      "username": "coffeelover",
+      "name": "Coffee Lover",
+      "profile_image": {
+        "small": "https://images.unsplash.com/profile3-small.jpg",
+        "medium": "https://images.unsplash.com/profile3-medium.jpg",
+        "large": "https://images.unsplash.com/profile3-large.jpg"
+      }
+    },
+    "urls": {
+      "raw": "https://images.unsplash.com/photo-003-raw",
+      "full": "https://images.unsplash.com/photo-003-full",
+      "regular": "https://images.unsplash.com/photo-003-regular",
+      "small": "https://images.unsplash.com/photo-003-small",
+      "thumb": "https://images.unsplash.com/photo-003-thumb"
+    },
+    "exif": null,
+    "location": null
+  }
+]

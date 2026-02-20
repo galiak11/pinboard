@@ -1,0 +1,44 @@
+name: PinBoard
+options:
+  bundleIdPrefix: com.demo.pinboard
+  deploymentTarget:
+    iOS: "16.0"
+  xcodeVersion: "16.0"
+  generateEmptyDirectories: true
+
+packages:
+  Nuke:
+    url: https://github.com/kean/Nuke
+    from: "12.0.0"
+
+targets:
+  PinBoard:
+    type: application
+    platform: iOS
+    sources:
+      - PinBoard
+    resources:
+      - PinBoard/Resources
+    dependencies:
+      - package: Nuke
+    settings:
+      base:
+        INFOPLIST_FILE: PinBoard/Resources/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.demo.pinboard
+        MARKETING_VERSION: "1.0"
+        CURRENT_PROJECT_VERSION: "1"
+        SWIFT_VERSION: "5.9"
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+
+  PinBoardTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - PinBoardTests
+    dependencies:
+      - target: PinBoard
+    settings:
+      base:
+        SWIFT_VERSION: "5.9"
+        GENERATE_INFOPLIST_FILE: YES

@@ -1,0 +1,39 @@
+{
+  "id": "photo-001",
+  "description": "Sunset over the mountains with golden light",
+  "alt_description": "Orange sky above mountain peaks",
+  "width": 4000,
+  "height": 6000,
+  "likes": 1234,
+  "created_at": "2024-06-15T10:30:00Z",
+  "user": {
+    "id": "user-001",
+    "username": "naturephoto",
+    "name": "Nature Photographer",
+    "profile_image": {
+      "small": "https://images.unsplash.com/profile-small.jpg",
+      "medium": "https://images.unsplash.com/profile-medium.jpg",
+      "large": "https://images.unsplash.com/profile-large.jpg"
+    }
+  },
+  "urls": {
+    "raw": "https://images.unsplash.com/photo-001-raw",
+    "full": "https://images.unsplash.com/photo-001-full",
+    "regular": "https://images.unsplash.com/photo-001-regular",
+    "small": "https://images.unsplash.com/photo-001-small",
+    "thumb": "https://images.unsplash.com/photo-001-thumb"
+  },
+  "exif": {
+    "make": "Canon",
+    "model": "EOS R5",
+    "exposure_time": "1/500",
+    "aperture": "2.8",
+    "focal_length": "85.0",
+    "iso": 400
+  },
+  "location": {
+    "name": "Yosemite National Park",
+    "city": "Yosemite Village",
+    "country": "United States"
+  }
+}
