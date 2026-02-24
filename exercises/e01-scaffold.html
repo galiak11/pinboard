@@ -206,6 +206,88 @@ enum AppColors {
     </div>
   </details>
 
+  <div class="step">
+    <div class="step-header">
+      <span class="step-num">Step 5</span>
+      <span class="step-title">Add a visible label and verify tokens</span>
+    </div>
+    <p>To make the design tokens visible and testable in a way that future exercises can build on, create a feature-backed view controller for the home feed and a small unit test that verifies the UI uses the design tokens.</p>
+    <p>What to create:</p>
+    <ol>
+      <li>Create <code>PinBoard/Features/HomeFeed/HomeFeedViewController.swift</code> — a simple view controller that displays a centered label using <code>AppColors</code> and <code>AppFonts</code>.</li>
+      <li>Update <code>SceneDelegate.swift</code> to set a <code>UINavigationController</code> with <code>HomeFeedViewController()</code> as its <code>rootViewController</code>.</li>
+      <li>Create a unit test file <code>PinBoardTests/Features/HomeFeed/HomeFeedViewControllerTests.swift</code> that loads the view controller and asserts the label and background use the expected tokens.</li>
+      <li>Run the app and tests in Xcode. Future exercises will replace and extend this view controller into the full replica.</li>
+    </ol>
+
+    <details>
+      <summary>Example: HomeFeedViewController.swift</summary>
+      <div class="hint-body">
+<pre><code>import UIKit
+
+final class HomeFeedViewController: UIViewController {
+    private let titleLabel = UILabel()
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = AppColors.background
+
+        titleLabel.text = "PinBoard"
+        titleLabel.textColor = AppColors.onSurface
+        titleLabel.font = AppFonts.heading
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+
+        view.addSubview(titleLabel)
+        NSLayoutConstraint.activate([
+            titleLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            titleLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor)
+        ])
+    }
+}
+</code></pre>
+      </div>
+    </details>
+
+    <details>
+      <summary>SceneDelegate change (set HomeFeedViewController as root)</summary>
+      <div class="hint-body">
+<pre><code>guard let windowScene = scene as? UIWindowScene else { return }
+let window = UIWindow(windowScene: windowScene)
+let home = HomeFeedViewController()
+let nav = UINavigationController(rootViewController: home)
+nav.view.backgroundColor = AppColors.background
+window.rootViewController = nav
+window.makeKeyAndVisible()
+self.window = window
+</code></pre>
+      </div>
+    </details>
+
+    <details>
+      <summary>Example test: HomeFeedViewControllerTests.swift</summary>
+      <div class="hint-body">
+<pre><code>import XCTest
+@testable import PinBoard
+
+class HomeFeedViewControllerTests: XCTestCase {
+    func test_labelAndBackgroundUseDesignTokens() {
+        let vc = HomeFeedViewController()
+        vc.loadViewIfNeeded()
+
+        XCTAssertEqual(vc.view.backgroundColor, AppColors.background)
+
+        let label = vc.view.subviews.compactMap { $0 as? UILabel }.first
+        XCTAssertNotNil(label)
+        XCTAssertEqual(label?.text, "PinBoard")
+        XCTAssertEqual(label?.textColor, AppColors.onSurface)
+        XCTAssertEqual(label?.font, AppFonts.heading)
+    }
+}
+</code></pre>
+      </div>
+    </details>
+  </div>
+
   <details>
     <summary>Solution: Fonts.swift</summary>
     <div class="hint-body">
@@ -256,12 +338,22 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
   </table>
 
   <h2>Tests</h2>
-  <p>None for this exercise — verification is visual (app launches, background color is correct, dark mode works).</p>
+  <p><span class="tag tag-test">HomeViewControllerTests</span> <span class="tag tag-test">PinBoardTests</span></p>
 
   <h2>Commit</h2>
   <div class="commit-msg">feat: scaffold project with design system</div>
 
 </div>
+
+<nav class="nav-bar">
+  <div class="nav-group">
+    <a href="index.html">← Overview</a>
+  </div>
+  <span class="nav-title">E1 of 14</span>
+  <div class="nav-group">
+    <a href="e02-networking.html">E2: Networking →</a>
+  </div>
+</nav>
 
 <script src="shared.js"></script>
 </body>

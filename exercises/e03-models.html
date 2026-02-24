@@ -71,6 +71,11 @@
         let raw: URL
         let full: URL
         let regular: URL
+
+          <details>
+          <summary>Solution: UnsplashPhoto.swift</summary>
+          <div class="hint-body">
+        <pre><code>import Foundation
         let small: URL
         let thumb: URL
     }
@@ -118,6 +123,35 @@ enum Fixtures {
     </div>
     <p>Create <code>ModelDecodingTests</code> that:</p>
     <ul>
+          </div>
+          </details>
+
+          <details>
+          <summary>Solution: ModelDecodingTests.swift</summary>
+          <div class="hint-body">
+        <pre><code>import XCTest
+        @testable import PinBoard
+
+        final class ModelDecodingTests: XCTestCase {
+          func test_decodePhotosPage() throws {
+            let data = Fixtures.loadFixture("photos_page1")
+            let photos = try JSONDecoder().decode([UnsplashPhoto].self, from: data)
+            XCTAssertGreaterThan(photos.count, 0)
+            XCTAssertEqual(photos.first?.id, "") // update with expected ID from fixture
+            XCTAssertNotNil(photos.first?.urls.regular)
+            XCTAssertNotNil(photos.first?.user.name)
+          }
+
+          func test_decodePhotoDetail() throws {
+            let data = Fixtures.loadFixture("photo_detail")
+            let photo = try JSONDecoder().decode(UnsplashPhoto.self, from: data)
+            XCTAssertNotNil(photo.exif)
+            XCTAssertNotNil(photo.location)
+          }
+        }
+        </code></pre>
+          </div>
+          </details>
       <li>Decode <code>photos_page1.json</code> into <code>[UnsplashPhoto]</code> — verify count, first photo's ID, URLs, user name</li>
       <li>Decode <code>photo_detail.json</code> into <code>UnsplashPhoto</code> — verify all fields including exif when present</li>
       <li>Test a photo with nil description and nil exif — verify they decode as nil without error</li>
@@ -153,6 +187,17 @@ enum Fixtures {
   </div>
 
 </div>
+
+<nav class="nav-bar">
+  <div class="nav-group">
+    <a href="index.html">← Overview</a>
+    <a href="e02-networking.html">← E2: Networking</a>
+  </div>
+  <span class="nav-title">E3 of 14</span>
+  <div class="nav-group">
+    <a href="e04-coordinators.html">E4: Coordinators →</a>
+  </div>
+</nav>
 
 <script src="shared.js"></script>
 </body>
