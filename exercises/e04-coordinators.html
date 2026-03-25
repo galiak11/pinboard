@@ -123,7 +123,126 @@ coordinator.start()</code></pre>
     </ul>
   </div>
 
-</div>
+      <details>
+        <summary>Solution: Coordinator.swift</summary>
+        <div class="hint-body">
+    <pre><code>import UIKit
+
+    protocol Coordinator: AnyObject {
+      var navigationController: UINavigationController { get }
+      var childCoordinators: [Coordinator] { get set }
+      func start()
+    }
+
+    extension Coordinator {
+      func addChild(_ coordinator: Coordinator) {
+        childCoordinators.append(coordinator)
+      }
+
+      func removeChild(_ coordinator: Coordinator) {
+        childCoordinators.removeAll { $0 === coordinator }
+      }
+    }
+    </code></pre>
+        </div>
+      </details>
+
+      <details>
+        <summary>Solution: AppCoordinator.swift</summary>
+        <div class="hint-body">
+    <pre><code>import UIKit
+
+    final class AppCoordinator: Coordinator {
+      private let window: UIWindow
+      let navigationController: UINavigationController
+      var childCoordinators: [Coordinator] = []
+      private let container: AppDependencyContainer
+
+      init(window: UIWindow, navigationController: UINavigationController, container: AppDependencyContainer) {
+        self.window = window
+        self.navigationController = navigationController
+        self.container = container
+      }
+
+      func start() {
+        window.rootViewController = navigationController
+        window.makeKeyAndVisible()
+      }
+    }
+    </code></pre>
+        </div>
+      </details>
+
+      <details>
+        <summary>Solution: AppDependencyContainer.swift</summary>
+        <div class="hint-body">
+    <pre><code>import Foundation
+
+    final class AppDependencyContainer {
+      let apiClient: APIClientProtocol
+
+      init() {
+        let baseURL = URL(string: "https://api.unsplash.com")!
+        apiClient = APIClient(baseURL: baseURL, accessKey: Secrets.unsplashAccessKey)
+      }
+
+      // Factory methods for scoped containers (added in E13)
+      func makeHomeFeedContainer() -> HomeFeedDependencyContainer {
+        HomeFeedDependencyContainer(parent: self)
+      }
+    }
+    </code></pre>
+        </div>
+      </details>
+
+      <details>
+        <summary>Solution: SceneDelegate.swift</summary>
+        <div class="hint-body">
+    <pre><code>import UIKit
+
+    class SceneDelegate: UIResponder, UIWindowSceneDelegate {
+      var window: UIWindow?
+      private var appCoordinator: AppCoordinator?
+
+      func scene(_ scene: UIScene, willConnectTo session: UISceneSession, options connectionOptions: UIScene.ConnectionOptions) {
+        guard let windowScene = scene as? UIWindowScene else { return }
+        let window = UIWindow(windowScene: windowScene)
+        let container = AppDependencyContainer()
+        let nav = UINavigationController()
+        let coordinator = AppCoordinator(window: window, navigationController: nav, container: container)
+        self.window = window
+        self.appCoordinator = coordinator
+        coordinator.start()
+      }
+    }
+    </code></pre>
+        </div>
+      </details>
+
+      <details>
+        <summary>Solution: AppCoordinatorTests.swift</summary>
+        <div class="hint-body">
+    <pre><code>import XCTest
+    @testable import PinBoard
+
+    final class AppCoordinatorTests: XCTestCase {
+      func test_start_setsWindowRootViewController() {
+        let window = UIWindow()
+        let nav = UINavigationController()
+        let container = AppDependencyContainer()
+        let sut = AppCoordinator(window: window, navigationController: nav, container: container)
+
+        sut.start()
+
+        XCTAssertTrue(window.rootViewController === nav)
+        XCTAssertEqual(sut.childCoordinators.count, 0)
+      }
+    }
+    </code></pre>
+        </div>
+      </details>
+
+    </div>
 
 <nav class="nav-bar">
   <div class="nav-group">

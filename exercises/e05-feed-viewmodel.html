@@ -66,6 +66,32 @@
       <li><code>aspectRatio</code> = <code>CGFloat(photo.width) / CGFloat(photo.height)</code></li>
       <li><code>likesText</code> = formatted: 0 → "No likes yet", 1 → "1 like", 500 → "500 likes", 14500 → "14.5K likes"</li>
     </ul>
+    <details>
+      <summary>Solution: Quick stubs</summary>
+      <div class="hint-body">
+<pre><code>// PinBoard/Features/HomeFeed/HomeFeedService.swift
+// protocol HomeFeedServiceProtocol { func fetchPhotos(page: Int) async throws -> [UnsplashPhoto] }
+
+// PinBoard/Features/HomeFeed/PhotoCellViewModel.swift
+// struct PhotoCellViewModel { let id: String; let title: String }
+
+// PinBoard/Features/HomeFeed/HomeFeedViewModel.swift
+// final class HomeFeedViewModel { /* state machine, paging */ }
+
+// PinBoardTests/Mocks/MockHomeFeedService.swift
+// final class MockHomeFeedService: HomeFeedServiceProtocol { /* returns fixtures */ }
+
+// PinBoardTests/Features/HomeFeed/HomeFeedViewModelTests.swift
+// XCTest/SwiftTesting examples asserting state transitions
+
+// PinBoardTests/Features/HomeFeed/HomeFeedServiceTests.swift
+// Tests for service mapping and error handling
+
+// PinBoardTests/Features/HomeFeed/PhotoCellViewModelTests.swift
+// Tests for decoded title/urls into cell VM
+</code></pre>
+      </div>
+    </details>
   </div>
 
   <details>
